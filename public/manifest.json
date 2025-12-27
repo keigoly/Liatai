@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "SideStream for Yahoo! Realtime",
+  "version": "1.0.0",
+  "description": "Yahoo!リアルタイム検索をサイドパネルで表示する拡張機能",
+  "permissions": ["sidePanel"],
+  "host_permissions": [
+    "https://search.yahoo.co.jp/*"
+  ],
+  "side_panel": {
+    "default_path": "index.html"
+  },
+  "action": {
+    "default_title": "SideStreamを開く"
+  }
+}

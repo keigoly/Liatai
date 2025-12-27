@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "SideStream for Yahoo! Realtime",
+  "version": "1.0.1",
+  "action": { "default_title": "Open SideStream" },
+  "background": { "service_worker": "src/background.ts", "type": "module" },
+  "side_panel": { "default_path": "index.html" },
+  "permissions": ["sidePanel", "storage"],
+  "host_permissions": ["https://search.yahoo.co.jp/*"],
+  "icons": {
+    "16": "src/assets/react.svg",
+    "48": "src/assets/react.svg",
+    "128": "src/assets/react.svg"
+  }
+}
