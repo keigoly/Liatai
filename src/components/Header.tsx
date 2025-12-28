@@ -58,8 +58,6 @@ export const Header = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 自動更新スイッチを表示するかどうかの判定
-  // 「ホーム画面かつトレンドタブ」または「検索画面」のときのみ表示
   const showAutoRefresh = (currentView === 'home' && homeTab === 'trends') || currentView === 'search';
 
   return (
@@ -67,6 +65,8 @@ export const Header = ({
       
       {/* 上段: ホームアイコンと検索窓 */}
       <div className="flex items-center gap-3 p-3">
+        
+        {/* ★修正: テキストを削除し、アイコンのみのボタンに戻しました */}
         <button onClick={onGoHome} className="p-2 rounded-full hover:bg-[var(--card-bg-color)] transition-colors text-gray-400 hover:text-[var(--theme-color)]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z"/></svg>
         </button>
@@ -155,11 +155,10 @@ export const Header = ({
         )}
       </div>
 
-      {/* 更新情報バー (表示条件を追加) */}
+      {/* 更新情報バー */}
       <div className="flex justify-between items-center px-4 py-1 bg-[var(--card-bg-color)] border-b border-[var(--border-color)] text-xs text-gray-400">
         <span>{currentView === 'home' && homeTab === 'trends' ? trendUpdateTime : ''}</span>
         
-        {/* ★修正: showAutoRefresh が true のときだけ表示 */}
         {showAutoRefresh && (
           <div className="flex items-center gap-2">
             <label className="flex items-center cursor-pointer">

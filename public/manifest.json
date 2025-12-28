@@ -1,19 +1,21 @@
 {
   "manifest_version": 3,
-  "name": "SideStream for Yahoo! Realtime",
+  "name": "リアタイ！",
   "version": "1.0.0",
-  "description": "Yahoo!リアルタイム検索をサイドパネルで表示する拡張機能",
-  "permissions": ["sidePanel"],
+  "description": "Yahoo!リアルタイム検索をサイドパネルで快適に。",
+  "permissions": [
+    "sidePanel"
+  ],
   "host_permissions": [
     "https://search.yahoo.co.jp/*"
   ],
-  "background": {
-    "service_worker": "service-worker.js"
-  },
   "side_panel": {
     "default_path": "index.html"
   },
   "action": {
-    "default_title": "SideStreamを開く"
+    "default_title": "リアタイ！を開く"
+  },
+  "background": {
+    "service_worker": "service-worker.js"
   }
 }
