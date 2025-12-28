@@ -37,7 +37,6 @@ export interface FolderItem {
   isPinned?: boolean; 
 }
 
-// ★エラー解消: Post の定義を追加
 export interface Post {
   id: string;
   name: string;
@@ -49,4 +48,5 @@ export interface Post {
   replies: string;
   retweets: string;
   likes: string;
+  isBest?: boolean; // ★追加: ベストポストフラグ
 }

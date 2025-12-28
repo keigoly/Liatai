@@ -6,6 +6,7 @@ import type { Tweet, TrendItem } from './services/realtimeService';
 import { Header } from './components/Header';
 import { SettingsPanel } from './components/SettingsPanel';
 import { RegisteredPanel } from './components/RegisteredPanel';
+import { RelativeTime } from './components/RelativeTime';
 import type { ThemeColor, BgMode, FontSize, NgSettings } from './types';
 
 const TweetText = ({ text, onHashtagClick }: { text: string, onHashtagClick: (tag: string) => void }) => {
@@ -41,7 +42,6 @@ function App() {
   const [trends, setTrends] = useState<TrendItem[]>([]);
   const [trendUpdateTime, setTrendUpdateTime] = useState<string>('');
   
-  // ★修正: ローディング状態を個別に管理
   const [isTweetLoading, setIsTweetLoading] = useState(false);
   const [isTrendLoading, setIsTrendLoading] = useState(false);
 
@@ -51,6 +51,9 @@ function App() {
   const [themeColor, setThemeColor] = useState<ThemeColor>('#1d9bf0');
   const [bgMode, setBgMode] = useState<BgMode>('default');
   const [fontSize, setFontSize] = useState<FontSize>(15);
+
+  // ★追加: 最後にベストポストを表示した時間を記録（5分再表示用）
+  const lastBestPostTimeRef = useRef<number>(0);
 
   const [ngSettings, setNgSettingsState] = useState<NgSettings>(() => {
     try {
@@ -138,6 +141,7 @@ function App() {
     setTweets(prev => {
       const existingIds = new Set(prev.map(t => t.id));
       const uniquePending = pendingTweets.filter(t => !existingIds.has(t.id));
+      // 単純に上に追加（時系列を維持）
       return [...uniquePending, ...prev].slice(0, 50);
     });
     setPendingTweets([]);
@@ -155,25 +159,56 @@ function App() {
     try {
       const fetchedTweets = await fetchRealtimeTweets(query);
       
-      if (isBackground && isScrolled) {
-        setPendingTweets(prevPending => {
-          const currentIds = new Set(tweets.map(t => t.id));
-          const pendingIds = new Set(prevPending.map(t => t.id));
-          const uniqueNew = fetchedTweets.filter(t => !currentIds.has(t.id) && !pendingIds.has(t.id));
-          
-          if (uniqueNew.length === 0) return prevPending;
-          return [...uniqueNew, ...prevPending];
-        });
+      // ★修正: 検索直後(isBackground=false)はベストポストを先頭に。
+      // 自動更新(isBackground=true)時は時系列順に追加するが、5分経ってたらベストポストを再度ねじ込む。
+      
+      if (!isBackground) {
+        // --- 1. 初回ロード ---
+        const bestTweets = fetchedTweets.filter(t => t.isBest);
+        const normalTweets = fetchedTweets.filter(t => !t.isBest).sort((a, b) => b.createdAt - a.createdAt);
+        
+        // ベストポスト -> 通常ポスト(新しい順) で結合
+        setTweets([...bestTweets, ...normalTweets].slice(0, 50));
+        setPendingTweets([]);
+        lastBestPostTimeRef.current = Date.now(); // タイマーリセット
+        setIsTweetLoading(false);
+
       } else {
-        setTweets(prev => {
-          const existingIds = new Set(prev.map(t => t.id));
-          const uniqueNew = fetchedTweets.filter(t => !existingIds.has(t.id));
-          
-          if (uniqueNew.length === 0) return prev;
-          
-          return [...uniqueNew, ...prev].slice(0, 50);
+        // --- 2. 自動更新 ---
+        // 5分(300000ms)経過したかチェック
+        const shouldShowBestAgain = Date.now() - lastBestPostTimeRef.current > 300000;
+        
+        const newTweets = fetchedTweets.filter(t => {
+          // ベストポストは、5分経っていなければ除外（重複＆頻繁表示防止）
+          if (t.isBest && !shouldShowBestAgain) return false;
+          return true;
         });
-        if (!isBackground) setPendingTweets([]);
+
+        // 現在のリストにあるIDを除外して新着のみ抽出
+        const currentIds = new Set(tweets.map(t => t.id));
+        const pendingIds = new Set(pendingTweets.map(t => t.id));
+        
+        let uniqueNew = newTweets.filter(t => !currentIds.has(t.id) && !pendingIds.has(t.id));
+        
+        // 新着の中での並び順: ベストポストがあれば先頭、それ以外は日時順
+        uniqueNew = uniqueNew.sort((a, b) => {
+          if (a.isBest && !b.isBest) return -1;
+          if (!a.isBest && b.isBest) return 1;
+          return b.createdAt - a.createdAt;
+        });
+
+        if (uniqueNew.length > 0) {
+          // 5分経過でベストポストを表示したら、タイマーをリセット
+          if (uniqueNew.some(t => t.isBest)) {
+            lastBestPostTimeRef.current = Date.now();
+          }
+
+          if (isScrolled) {
+            setPendingTweets(prev => [...uniqueNew, ...prev]);
+          } else {
+            setTweets(prev => [...uniqueNew, ...prev].slice(0, 50));
+          }
+        }
       }
     } catch (err) { 
       console.error(err); 
@@ -332,7 +367,6 @@ function App() {
             <div key="home-view" className="animate-in fade-in slide-in-from-bottom-2 duration-500 h-full flex flex-col">
               {homeTab === 'trends' && (
                 <div className="pb-10 pt-2">
-                  {/* ★修正: ロジックを変更 */}
                   {isTrendLoading ? (
                      <div className="text-center py-10 text-gray-500"><div className="animate-spin h-6 w-6 border-4 border-gray-500 rounded-full border-t-transparent mx-auto mb-2"></div>トレンド取得中...</div>
                   ) : trends.length === 0 ? (
@@ -389,14 +423,13 @@ function App() {
 
           {currentView === 'search' && (
             <div key="search-view" className="animate-in fade-in duration-300">
-              {/* ★修正: ロジックを変更 */}
               {isTweetLoading && (
                 <div className="flex justify-center py-10"><div className="animate-spin h-6 w-6 border-4 border-[var(--theme-color)] rounded-full border-t-transparent"></div></div>
               )}
               
               <div className="flex flex-col" ref={tweetListRef}>
                 {filteredTweets.map((tweet) => (
-                  <div key={tweet.id} className="border-b border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors relative">
+                  <div key={tweet.id} className={`border-b border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors relative`}>
                     <div className="p-4 flex gap-3">
                       <a href={`https://x.com/${tweet.handle.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 group">
                         {tweet.iconUrl ? (
@@ -433,7 +466,9 @@ function App() {
                             <div className="flex items-center gap-1 group cursor-pointer hover:text-green-400 transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>{tweet.retweetCount && <span className="text-xs ml-1">{tweet.retweetCount}</span>}</div>
                             <div className="flex items-center gap-1 group cursor-pointer hover:text-pink-400 transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>{tweet.likeCount && <span className="text-xs ml-1">{tweet.likeCount}</span>}</div>
                           </div>
-                          <a href={tweet.url} target="_blank" rel="noopener noreferrer" className="ml-auto text-[#1d9bf0] hover:underline cursor-pointer">{tweet.timestamp}</a>
+                          <a href={tweet.url} target="_blank" rel="noopener noreferrer" className="ml-auto text-[#1d9bf0] hover:underline cursor-pointer">
+                            <RelativeTime initialText={tweet.timestamp} createdAt={tweet.createdAt} />
+                          </a>
                         </div>
                       </div>
                     </div>

@@ -2,14 +2,21 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
+      input: {
+        main: 'index.html',           // メイン画面
+        background: 'src/background.ts', // 裏方プログラム
+      },
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
+        entryFileNames: (chunkInfo) => {
+          // 裏方プログラムは固定の名前で出力する
+          if (chunkInfo.name === 'background') {
+            return 'service-worker.js';
+          }
+          return 'assets/[name]-[hash].js';
         },
       },
     },

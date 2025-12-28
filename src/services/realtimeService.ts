@@ -5,12 +5,14 @@ export interface Tweet {
   text: string;
   url: string;
   timestamp: string;
+  createdAt: number;
   author: string;
   handle: string;
   iconUrl: string;
   mediaUrl?: string;
   retweetCount?: string;
   likeCount?: string;
+  isBest: boolean; // ★追加
 }
 
 export type TrendState = 'up' | 'down' | 'new' | 'keep';
@@ -28,7 +30,6 @@ export interface TrendResult {
   items: TrendItem[];
 }
 
-// バックアップ用のID生成
 const generateHashId = (str: string): string => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -39,8 +40,17 @@ const generateHashId = (str: string): string => {
   return `hash-${Math.abs(hash)}`;
 };
 
-// ツイート要素の解析ロジック
-const parseTweetElement = (el: Element): Tweet | null => {
+const parseRelativeTime = (timeStr: string): number => {
+  const now = Date.now();
+  const secMatch = timeStr.match(/(\d+)秒/);
+  if (secMatch) return now - (parseInt(secMatch[1], 10) * 1000);
+  const minMatch = timeStr.match(/(\d+)分/);
+  if (minMatch) return now - (parseInt(minMatch[1], 10) * 60000);
+  return now;
+};
+
+// tweetElement解析時に isBest は後でセットするのでここでは含めない
+const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
   try {
     let bodyContainer = el.querySelector('[class*="Tweet_bodyContainer__"]');
     let bodyEl = bodyContainer?.querySelector('[class*="Tweet_body__"]');
@@ -64,8 +74,8 @@ const parseTweetElement = (el: Element): Tweet | null => {
 
     const timeEl = el.querySelector('[class*="Tweet_time__"]');
     const timestamp = timeEl?.textContent?.trim() || "";
-    
-    // IDとURLの特定（ここが重要：HTML内の固有IDを優先）
+    const createdAt = parseRelativeTime(timestamp);
+
     let tweetId = "";
     let url = "";
 
@@ -88,7 +98,6 @@ const parseTweetElement = (el: Element): Tweet | null => {
     }
 
     if (!tweetId) {
-        // IDが取れない場合は、内容からハッシュを生成して固定化
         tweetId = generateHashId(handle + text);
     }
 
@@ -118,15 +127,15 @@ const parseTweetElement = (el: Element): Tweet | null => {
     }
 
     return {
-      id: tweetId, // 絶対に変わらないID
-      text, url, timestamp, author, handle, iconUrl, mediaUrl, retweetCount, likeCount
+      id: tweetId,
+      text, url, timestamp, createdAt,
+      author, handle, iconUrl, mediaUrl, retweetCount, likeCount
     };
   } catch (e) {
     return null;
   }
 };
 
-// ★修正: 戻り値を単一の Tweet[] に戻す
 export const fetchRealtimeTweets = async (keyword: string): Promise<Tweet[]> => {
   if (!keyword) return [];
   
@@ -142,33 +151,34 @@ export const fetchRealtimeTweets = async (keyword: string): Promise<Tweet[]> => 
     const results: Tweet[] = [];
     const idSet = new Set<string>();
 
-    // 1. ベストポストエリア(#bt)を取得
+    // 1. ベストポスト(#bt)を取得 -> isBest = true
     const btContainer = doc.getElementById('bt');
     if (btContainer) {
       const wrappers = btContainer.querySelectorAll('[class*="Tweet_TweetContainer__"]');
       wrappers.forEach(el => {
         const t = parseTweetElement(el);
         if (t && !idSet.has(t.id)) {
-          results.push(t);
+          results.push({ ...t, isBest: true });
           idSet.add(t.id);
         }
       });
     }
 
-    // 2. 新着エリア(#sr)を取得
+    // 2. 新着ポスト(#sr)を取得 -> isBest = false
     const srContainer = doc.getElementById('sr');
     if (srContainer) {
       const wrappers = srContainer.querySelectorAll('[class*="Tweet_TweetContainer__"]');
       wrappers.forEach(el => {
         const t = parseTweetElement(el);
         if (t && !idSet.has(t.id)) {
-          results.push(t);
+          results.push({ ...t, isBest: false });
           idSet.add(t.id);
         }
       });
     }
 
-    return results;
+    // 取得時点では単純に新しい順に並べて返す (App側で制御するため)
+    return results.sort((a, b) => b.createdAt - a.createdAt);
 
   } catch (error) {
     console.error('[Service] Fetch tweets failed:', error);
