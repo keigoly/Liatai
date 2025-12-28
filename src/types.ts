@@ -48,5 +48,5 @@ export interface Post {
   replies: string;
   retweets: string;
   likes: string;
-  isBest?: boolean; // ★追加: ベストポストフラグ
+  isBest?: boolean; // ★復活: ベストポスト判定用
 }

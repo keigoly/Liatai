@@ -12,7 +12,7 @@ export interface Tweet {
   mediaUrl?: string;
   retweetCount?: string;
   likeCount?: string;
-  isBest: boolean; // ★追加
+  isBest: boolean;
 }
 
 export type TrendState = 'up' | 'down' | 'new' | 'keep';
@@ -42,14 +42,16 @@ const generateHashId = (str: string): string => {
 
 const parseRelativeTime = (timeStr: string): number => {
   const now = Date.now();
+  if (timeStr === 'Now') return now; 
   const secMatch = timeStr.match(/(\d+)秒/);
   if (secMatch) return now - (parseInt(secMatch[1], 10) * 1000);
   const minMatch = timeStr.match(/(\d+)分/);
   if (minMatch) return now - (parseInt(minMatch[1], 10) * 60000);
+  // "昨日" や日付が含まれる場合は、リアルタイム性の観点から古いとみなされるが
+  // ストリームで取得された以上は現在に近い値として扱うか、パースできない場合はnowを返す
   return now;
 };
 
-// tweetElement解析時に isBest は後でセットするのでここでは含めない
 const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
   try {
     let bodyContainer = el.querySelector('[class*="Tweet_bodyContainer__"]');
@@ -60,20 +62,29 @@ const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
     const iconImg = el.querySelector('[class*="Tweet_icon__"] img') as HTMLImageElement;
     let iconUrl = iconImg ? iconImg.src : "";
 
+    // ★修正: 返信先(@xxx)の削除処理を廃止し、テキストに含める
     let text = bodyEl.textContent || "";
     const replySpan = bodyEl.querySelector('[class*="Tweet__reply"]');
-    if (replySpan && replySpan.textContent) {
-      text = text.replace(replySpan.textContent, '');
-    }
+    const isReply = !!replySpan;
+
+    // 以前はここで replace していましたが、返信先IDを表示したいという要件に基づき
+    // そのまま残します。ただし、見栄えのためにスペース調整が必要ならここで行います。
     text = text.trim();
 
     const nameEl = el.querySelector('[class*="Tweet_authorName__"]');
     const idEl = el.querySelector('[class*="Tweet_authorID__"]');
     const author = nameEl?.textContent?.trim() || "Unknown";
-    const handle = idEl?.textContent?.trim() || "";
+    let handle = idEl?.textContent?.trim() || "";
 
     const timeEl = el.querySelector('[class*="Tweet_time__"]');
-    const timestamp = timeEl?.textContent?.trim() || "";
+    let timestamp = timeEl?.textContent?.trim() || "";
+    
+    // ★修正: 返信(isReply)の場合、DOM上の時刻は親ポストのものである可能性が高いため
+    // 「今」取得した新しい情報として強制的に 'Now' 扱いにする
+    if (isReply) {
+      timestamp = "Now";
+    }
+
     const createdAt = parseRelativeTime(timestamp);
 
     let tweetId = "";
@@ -151,20 +162,20 @@ export const fetchRealtimeTweets = async (keyword: string): Promise<Tweet[]> => 
     const results: Tweet[] = [];
     const idSet = new Set<string>();
 
-    // 1. ベストポスト(#bt)を取得 -> isBest = true
+    // #bt (ベストツイート)
     const btContainer = doc.getElementById('bt');
     if (btContainer) {
-      const wrappers = btContainer.querySelectorAll('[class*="Tweet_TweetContainer__"]');
-      wrappers.forEach(el => {
-        const t = parseTweetElement(el);
+      const bestWrapper = btContainer.querySelector('[class*="Tweet_TweetContainer__"]');
+      if (bestWrapper) {
+        const t = parseTweetElement(bestWrapper);
         if (t && !idSet.has(t.id)) {
           results.push({ ...t, isBest: true });
           idSet.add(t.id);
         }
-      });
+      }
     }
 
-    // 2. 新着ポスト(#sr)を取得 -> isBest = false
+    // #sr (新着ツイート)
     const srContainer = doc.getElementById('sr');
     if (srContainer) {
       const wrappers = srContainer.querySelectorAll('[class*="Tweet_TweetContainer__"]');
@@ -177,8 +188,7 @@ export const fetchRealtimeTweets = async (keyword: string): Promise<Tweet[]> => 
       });
     }
 
-    // 取得時点では単純に新しい順に並べて返す (App側で制御するため)
-    return results.sort((a, b) => b.createdAt - a.createdAt);
+    return results;
 
   } catch (error) {
     console.error('[Service] Fetch tweets failed:', error);
@@ -187,6 +197,7 @@ export const fetchRealtimeTweets = async (keyword: string): Promise<Tweet[]> => 
 };
 
 export const fetchRealtimeTrends = async (): Promise<TrendResult> => {
+  // トレンド取得処理は変更なし
   try {
     const targetUrl = 'https://search.yahoo.co.jp/realtime';
     const response = await fetch(targetUrl);
