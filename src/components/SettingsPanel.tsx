@@ -13,6 +13,14 @@ const RegExpSwitch: React.FC<{ checked: boolean; onChange: (checked: boolean) =>
   );
 };
 
+interface AccordionProps {
+  title: string;
+  currentValueLabel?: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}
+
 const SettingsAccordion: React.FC<AccordionProps> = ({ title, currentValueLabel, isOpen, onToggle, children }) => {
   const [animationParent] = useAutoAnimate({ duration: 300, easing: 'ease-in-out' });
   return (
@@ -28,14 +36,6 @@ const SettingsAccordion: React.FC<AccordionProps> = ({ title, currentValueLabel,
     </div>
   );
 };
-
-interface AccordionProps {
-  title: string;
-  currentValueLabel?: string;
-  isOpen: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}
 
 interface SettingsPanelProps {
   trendRefreshInterval: number;
@@ -383,6 +383,23 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <div className="flex-1">
                 <div className="text-sm font-bold text-white">不具合の報告</div>
                 <div className="text-xs text-gray-500">バグ報告や機能要望はこちら</div>
+              </div>
+              <svg className="text-gray-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+
+            {/* 1.5 プライバシーポリシー */}
+            <a 
+              href="https://github.com/keigoly/Liatai/blob/main/PRIVACY.md"
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-4 border-b border-[var(--border-color)] hover:bg-[var(--bg-color)] transition-colors group"
+            >
+              <div className="p-2 rounded-full bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-bold text-white">プライバシーポリシー</div>
+                <div className="text-xs text-gray-500">個人情報の取り扱いについて</div>
               </div>
               <svg className="text-gray-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
             </a>
