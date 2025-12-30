@@ -1,73 +1,46 @@
-# React + TypeScript + Vite
+v1.0.1 アップデート: 設定の保存と返信先表示の改善
+## 更新内容
+* 設定（自動更新間隔など）がリロード後も保存されるように修正しました。
+* ベストポストの表示ロジックを改善しました。
+* 返信先（@...）を1行目に独立して表示するようにしました。
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+「今、何が起きている？」を、作業を止めずに最速チェック。某リアルタイム検索をChromeのサイドパネルに常駐させる、推し活・情報収集のための最強ツールです。
 
-Currently, two official plugins are available:
+◇概要
+リアタイ！」は、ブラウザのタブを切り替えることなく、
+某リアルタイム検索（X/Twitterのトレンドや投稿）をサイドパネルで閲覧できる拡張機能です。 
+動画を見ながら、記事を読みながら、仕事をしながら……。
+あらゆる作業の「横」で、世の中の反応をリアルタイムに追いかけることができます。
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+【ここがすごい！3つのコア機能】
 
-## React Compiler
+1. 邪魔にならない「サイドパネル」表示 わざわざ新しいタブを開いて検索する必要はありません。ブラウザの横にスッと表示されるので、メインの作業を邪魔することなく、トレンドの急上昇ワードや特定のキーワードの盛り上がりを「ながら見」できます。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+2. 徹底的な「自動更新」カスタマイズ 最新情報を逃さないための自動更新機能を搭載。更新間隔は、用途に合わせて細かく設定可能です。
 
-## Expanding the ESLint configuration
+・トレンド情報の更新: 1分 / 3分 / 5分 / 10分
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+・検索結果の更新: 1秒 / 3秒 / 5秒 / 10秒 （※ソースコード設定値準拠：秒単位の超高速更新で、実況ツイートの流れも逃しません）
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+3. 強力な「NGフィルター」機能 見たくない情報は、視界に入る前にブロック。快適なタイムラインを作れます。
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+・NGワード: 特定の単語を含むポストを非表示にします。
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+・NGユーザー: 特定のユーザーID（@〜）を指定して非表示にします。
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+・正規表現対応: 上級者向けに、正規表現を使った高度なフィルタリングもサポートしています。
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+◇デザインも自分好みに
+長時間見ていても疲れないよう、デザイン設定も充実させました。
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+・背景モード: 「デフォルト」「ダークブルー」「完全ブラック（有機EL向け）」の3種類から選択可能。
+
+・テーマカラー: 推し色や気分に合わせて、アクセントカラーを6色から変更できます。
+
+・文字サイズ: 13px〜18pxまで、見やすさに合わせて5段階で調整可能。
+
+◇安心のプライバシー設計
+この拡張機能は、設定情報をブラウザ内にのみ保存し、外部サーバーへ個人データを送信することはありません。安心してご利用いただけます。
+
+◇開発者より
+「いちいち検索画面を開くのが面倒」「テレビの実況をパソコンで快適に見たい」そんな思いから開発しました。 不具合報告や機能要望は、設定画面のリンクからいつでもお待ちしています。
