@@ -13,7 +13,10 @@ export interface Tweet {
   retweetCount?: string;
   likeCount?: string;
   isBest: boolean;
+  replyTo?: string; // ★追加: 返信先のハンドル名 (@user)
 }
+
+// ... (TrendState, TrendItem, TrendResult, FetchTweetsResult, generateHashId, parseRelativeTime は変更なし) ...
 
 export type TrendState = 'up' | 'down' | 'new' | 'keep';
 
@@ -28,6 +31,11 @@ export interface TrendItem {
 export interface TrendResult {
   updateTime: string;
   items: TrendItem[];
+}
+
+export interface FetchTweetsResult {
+  best: Tweet | null;
+  timeline: Tweet[];
 }
 
 const generateHashId = (str: string): string => {
@@ -47,8 +55,6 @@ const parseRelativeTime = (timeStr: string): number => {
   if (secMatch) return now - (parseInt(secMatch[1], 10) * 1000);
   const minMatch = timeStr.match(/(\d+)分/);
   if (minMatch) return now - (parseInt(minMatch[1], 10) * 60000);
-  // "昨日" や日付が含まれる場合は、リアルタイム性の観点から古いとみなされるが
-  // ストリームで取得された以上は現在に近い値として扱うか、パースできない場合はnowを返す
   return now;
 };
 
@@ -62,13 +68,28 @@ const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
     const iconImg = el.querySelector('[class*="Tweet_icon__"] img') as HTMLImageElement;
     let iconUrl = iconImg ? iconImg.src : "";
 
-    // ★修正: 返信先(@xxx)の削除処理を廃止し、テキストに含める
-    let text = bodyEl.textContent || "";
-    const replySpan = bodyEl.querySelector('[class*="Tweet__reply"]');
+    // ★修正: 返信先情報の分離処理
+    let replyTo: string | undefined = undefined;
+    
+    // bodyElをクローンして、HTML構造を破壊せずに操作
+    const bodyClone = bodyEl.cloneNode(true) as HTMLElement;
+    
+    // 返信先を示す要素（class名に "Tweet__reply" を含むspan等）を探す
+    const replySpan = bodyClone.querySelector('[class*="Tweet__reply"]');
     const isReply = !!replySpan;
 
-    // 以前はここで replace していましたが、返信先IDを表示したいという要件に基づき
-    // そのまま残します。ただし、見栄えのためにスペース調整が必要ならここで行います。
+    if (replySpan) {
+      // "返信先: @username" のようなテキストから @username を抽出
+      const replyText = replySpan.textContent || "";
+      const match = replyText.match(/@([a-zA-Z0-9_]+)/);
+      if (match) {
+        replyTo = "@" + match[1];
+      }
+      // 本文から返信先表示を削除して、純粋なメッセージだけにする
+      replySpan.remove();
+    }
+
+    let text = bodyClone.textContent || "";
     text = text.trim();
 
     const nameEl = el.querySelector('[class*="Tweet_authorName__"]');
@@ -79,8 +100,6 @@ const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
     const timeEl = el.querySelector('[class*="Tweet_time__"]');
     let timestamp = timeEl?.textContent?.trim() || "";
     
-    // ★修正: 返信(isReply)の場合、DOM上の時刻は親ポストのものである可能性が高いため
-    // 「今」取得した新しい情報として強制的に 'Now' 扱いにする
     if (isReply) {
       timestamp = "Now";
     }
@@ -140,15 +159,16 @@ const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
     return {
       id: tweetId,
       text, url, timestamp, createdAt,
-      author, handle, iconUrl, mediaUrl, retweetCount, likeCount
+      author, handle, iconUrl, mediaUrl, retweetCount, likeCount, replyTo
     };
   } catch (e) {
     return null;
   }
 };
 
-export const fetchRealtimeTweets = async (keyword: string): Promise<Tweet[]> => {
-  if (!keyword) return [];
+// ... (fetchRealtimeTweets, fetchRealtimeTrends は変更なしですが、contextとして必要なら維持してください) ...
+export const fetchRealtimeTweets = async (keyword: string): Promise<FetchTweetsResult> => {
+  if (!keyword) return { best: null, timeline: [] };
   
   try {
     const targetUrl = `https://search.yahoo.co.jp/realtime/search?p=${encodeURIComponent(keyword)}&ei=UTF-8&ord=new`;
@@ -159,46 +179,45 @@ export const fetchRealtimeTweets = async (keyword: string): Promise<Tweet[]> => 
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlText, 'text/html');
     
-    const results: Tweet[] = [];
+    let bestTweet: Tweet | null = null;
+    const timelineTweets: Tweet[] = [];
     const idSet = new Set<string>();
 
-    // #bt (ベストツイート)
     const btContainer = doc.getElementById('bt');
     if (btContainer) {
       const bestWrapper = btContainer.querySelector('[class*="Tweet_TweetContainer__"]');
       if (bestWrapper) {
         const t = parseTweetElement(bestWrapper);
-        if (t && !idSet.has(t.id)) {
-          results.push({ ...t, isBest: true });
+        if (t) {
+          bestTweet = { ...t, isBest: true };
           idSet.add(t.id);
         }
       }
     }
 
-    // #sr (新着ツイート)
     const srContainer = doc.getElementById('sr');
     if (srContainer) {
       const wrappers = srContainer.querySelectorAll('[class*="Tweet_TweetContainer__"]');
       wrappers.forEach(el => {
         const t = parseTweetElement(el);
         if (t && !idSet.has(t.id)) {
-          results.push({ ...t, isBest: false });
+          timelineTweets.push({ ...t, isBest: false });
           idSet.add(t.id);
         }
       });
     }
 
-    return results;
+    return { best: bestTweet, timeline: timelineTweets };
 
   } catch (error) {
     console.error('[Service] Fetch tweets failed:', error);
-    return [];
+    return { best: null, timeline: [] };
   }
 };
 
 export const fetchRealtimeTrends = async (): Promise<TrendResult> => {
-  // トレンド取得処理は変更なし
-  try {
+    // 省略 (変更なし)
+    try {
     const targetUrl = 'https://search.yahoo.co.jp/realtime';
     const response = await fetch(targetUrl);
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
@@ -241,7 +260,8 @@ export const fetchRealtimeTrends = async (): Promise<TrendResult> => {
         if (keyword) trends.push({ rank: parseInt(rankText, 10), keyword, state, imageUrl, description });
       });
     } else {
-      const container = doc.querySelector('[class*="Trend_container"]');
+        // Fallback logic
+        const container = doc.querySelector('[class*="Trend_container"]');
       if (container) {
         const items = container.querySelectorAll('li');
         items.forEach((item) => {

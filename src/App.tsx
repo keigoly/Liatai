@@ -1,4 +1,5 @@
 // src/App.tsx
+// ... imports はそのまま ...
 import { useState, useEffect, useRef } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { fetchRealtimeTweets, fetchRealtimeTrends } from './services/realtimeService';
@@ -28,11 +29,23 @@ const TweetText = ({ text, onHashtagClick }: { text: string, onHashtagClick: (ta
   );
 };
 
+// ... (loadStorage helper 等も前回のまま維持) ...
+const loadStorage = <T,>(key: string, defaultValue: T): T => {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : defaultValue;
+  } catch (e) {
+    console.error(`Failed to load ${key}`, e);
+    return defaultValue;
+  }
+};
+
 type TabType = 'all' | 'text' | 'media';
 type ViewType = 'home' | 'search';
 type HomeTabType = 'trends' | 'registered' | 'settings';
 
 function App() {
+  // ... (State定義などは前回のまま) ...
   const [inputValue, setInputValue] = useState('');
   const [searchKeyword, setSearchKeyword] = useState('');
   
@@ -46,19 +59,15 @@ function App() {
   const [isTweetLoading, setIsTweetLoading] = useState(false);
   const [isTrendLoading, setIsTrendLoading] = useState(false);
 
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [trendRefreshInterval, setTrendRefreshInterval] = useState<number>(60000);
-  const [searchRefreshInterval, setSearchRefreshInterval] = useState<number>(5000);
-  const [themeColor, setThemeColor] = useState<ThemeColor>('#1d9bf0');
-  const [bgMode, setBgMode] = useState<BgMode>('default');
-  const [fontSize, setFontSize] = useState<FontSize>(15);
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(() => loadStorage('sidestream_settings_autoRefresh', true));
+  const [trendRefreshInterval, setTrendRefreshInterval] = useState<number>(() => loadStorage('sidestream_settings_trendInterval', 60000));
+  const [searchRefreshInterval, setSearchRefreshInterval] = useState<number>(() => loadStorage('sidestream_settings_searchInterval', 5000));
+  
+  const [themeColor, setThemeColor] = useState<ThemeColor>(() => loadStorage('sidestream_settings_themeColor', '#1d9bf0'));
+  const [bgMode, setBgMode] = useState<BgMode>(() => loadStorage('sidestream_settings_bgMode', 'default'));
+  const [fontSize, setFontSize] = useState<FontSize>(() => loadStorage('sidestream_settings_fontSize', 15));
 
-  const [ngSettings, setNgSettingsState] = useState<NgSettings>(() => {
-    try {
-      const saved = localStorage.getItem('sidestream_ng_settings_v5');
-      return saved ? JSON.parse(saved) : { comments: [], userIds: [] };
-    } catch { return { comments: [], userIds: [] }; }
-  });
+  const [ngSettings, setNgSettingsState] = useState<NgSettings>(() => loadStorage('sidestream_ng_settings_v5', { comments: [], userIds: [] }));
 
   const setNgSettings = (newSettings: NgSettings | ((prev: NgSettings) => NgSettings)) => {
     setNgSettingsState(prev => {
@@ -68,12 +77,7 @@ function App() {
     });
   };
 
-  const [searchHistory, setSearchHistory] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('sidestream_search_history');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
+  const [searchHistory, setSearchHistory] = useState<string[]>(() => loadStorage('sidestream_search_history', []));
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('all');
@@ -82,11 +86,16 @@ function App() {
   
   const intervalRef = useRef<number | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const lastBestPostTime = useRef<number>(0);
   const [tweetListRef] = useAutoAnimate<HTMLDivElement>({ duration: 500, easing: 'ease-out' });
 
-  useEffect(() => {
-    localStorage.setItem('sidestream_ng_settings_v5', JSON.stringify(ngSettings));
-  }, [ngSettings]);
+  // ... (useEffect群、Helper関数群は前回のまま変更なし) ...
+  useEffect(() => { localStorage.setItem('sidestream_settings_autoRefresh', JSON.stringify(autoRefresh)); }, [autoRefresh]);
+  useEffect(() => { localStorage.setItem('sidestream_settings_trendInterval', JSON.stringify(trendRefreshInterval)); }, [trendRefreshInterval]);
+  useEffect(() => { localStorage.setItem('sidestream_settings_searchInterval', JSON.stringify(searchRefreshInterval)); }, [searchRefreshInterval]);
+  useEffect(() => { localStorage.setItem('sidestream_settings_themeColor', JSON.stringify(themeColor)); }, [themeColor]);
+  useEffect(() => { localStorage.setItem('sidestream_settings_bgMode', JSON.stringify(bgMode)); }, [bgMode]);
+  useEffect(() => { localStorage.setItem('sidestream_settings_fontSize', JSON.stringify(fontSize)); }, [fontSize]);
 
   useEffect(() => {
     localStorage.setItem('sidestream_search_history', JSON.stringify(searchHistory));
@@ -134,9 +143,7 @@ function App() {
     setIsScrolled(isNowScrolled);
   };
 
-  // ★修正: ベストポスト固定を廃止し、純粋な時系列ソートに変更
-  // これにより、新しいポストが来ればベストポストも下に流れます
-  const sortTweets = (tweets: Tweet[]) => {
+  const sortNewestFirst = (tweets: Tweet[]) => {
     return tweets.sort((a, b) => b.createdAt - a.createdAt);
   };
 
@@ -146,7 +153,7 @@ function App() {
       const existingIds = new Set(prev.map(t => t.id));
       const uniquePending = pendingTweets.filter(t => !existingIds.has(t.id));
       const combined = [...uniquePending, ...prev];
-      return sortTweets(combined).slice(0, 50);
+      return combined.slice(0, 50);
     });
     setPendingTweets([]);
     if (scrollContainerRef.current) {
@@ -161,28 +168,46 @@ function App() {
     if (!isBackground) setIsTweetLoading(true);
     
     try {
-      const fetchedTweets = await fetchRealtimeTweets(query);
-      
-      if (isBackground && isScrolled) {
-        setPendingTweets(prevPending => {
-          const currentIds = new Set(tweets.map(t => t.id));
-          const pendingIds = new Set(prevPending.map(t => t.id));
-          const uniqueNew = fetchedTweets.filter(t => !currentIds.has(t.id) && !pendingIds.has(t.id));
-          
-          if (uniqueNew.length === 0) return prevPending;
-          return sortTweets([...uniqueNew, ...prevPending]);
-        });
+      const { best, timeline } = await fetchRealtimeTweets(query);
+      const sortedTimeline = sortNewestFirst([...timeline]);
+
+      const now = Date.now();
+      let effectiveBest = best;
+
+      if (isBackground) {
+        if (best && (now - lastBestPostTime.current < 5 * 60 * 1000)) {
+          effectiveBest = null; 
+        } else if (best) {
+          lastBestPostTime.current = now;
+        }
       } else {
-        setTweets(prev => {
-          const existingIds = new Set(prev.map(t => t.id));
-          const uniqueNew = fetchedTweets.filter(t => !existingIds.has(t.id));
-          
-          if (uniqueNew.length === 0) return prev;
-          
-          const combined = [...uniqueNew, ...prev];
-          return sortTweets(combined).slice(0, 50);
-        });
-        if (!isBackground) setPendingTweets([]);
+        if (best) lastBestPostTime.current = now;
+      }
+
+      if (isBackground) {
+        const incoming = effectiveBest ? [effectiveBest, ...sortedTimeline] : sortedTimeline;
+        if (isScrolled) {
+          setPendingTweets(prevPending => {
+            const currentIds = new Set(tweets.map(t => t.id));
+            const pendingIds = new Set(prevPending.map(t => t.id));
+            const uniqueNew = incoming.filter(t => !currentIds.has(t.id) && !pendingIds.has(t.id));
+            if (uniqueNew.length === 0) return prevPending;
+            return sortNewestFirst([...uniqueNew, ...prevPending]);
+          });
+        } else {
+          setTweets(prev => {
+            const existingIds = new Set(prev.map(t => t.id));
+            const uniqueNew = incoming.filter(t => !existingIds.has(t.id));
+            if (uniqueNew.length === 0) return prev;
+            const combined = [...uniqueNew, ...prev];
+            return combined.slice(0, 50);
+          });
+          setPendingTweets([]);
+        }
+      } else {
+        const initialList = effectiveBest ? [effectiveBest, ...sortedTimeline] : sortedTimeline;
+        setTweets(initialList.slice(0, 50));
+        setPendingTweets([]);
       }
     } catch (err) { 
       console.error(err); 
@@ -191,7 +216,7 @@ function App() {
     }
   };
 
-  // ... (以降、loadTrends, handleSearch, その他イベントハンドラ等は変更なしのため省略。全体の構成は維持してください) ...
+  // ... (loadTrends, handleSearch 等も変更なし) ...
   const loadTrends = async () => {
     setIsTrendLoading(true);
     try {
@@ -215,6 +240,7 @@ function App() {
     setPendingTweets([]); 
     setSearchKeyword(inputValue);
     setCurrentView('search'); 
+    lastBestPostTime.current = 0; 
     loadTweets(false, inputValue);
   };
 
@@ -225,12 +251,14 @@ function App() {
     setTweets([]); 
     setPendingTweets([]); 
     setCurrentView('search'); 
+    lastBestPostTime.current = 0;
     loadTweets(false, keyword);
   };
 
   const goHome = () => {
     setInputValue(''); setSearchKeyword(''); setPendingTweets([]);
     setCurrentView('home'); setIsTweetLoading(false); loadTrends();
+    lastBestPostTime.current = 0;
   };
 
   const addNgUser = (handle: string) => {
@@ -404,7 +432,7 @@ function App() {
               
               <div className="flex flex-col" ref={tweetListRef}>
                 {filteredTweets.map((tweet) => (
-                  <div key={tweet.id} className="border-b border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors relative">
+                  <div key={tweet.id} className={`border-b border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors relative ${tweet.isBest ? 'bg-[rgba(29,155,240,0.1)]' : ''}`}>
                     <div className="p-4 flex gap-3">
                       <a href={`https://x.com/${tweet.handle.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 group">
                         {tweet.iconUrl ? (
@@ -419,6 +447,7 @@ function App() {
                               <span className="font-bold text-[1em] text-white truncate max-w-[120px] group-hover:underline decoration-white">{tweet.author}</span>
                               <span className="text-[0.9em] text-[#1d9bf0] truncate hover:underline">{tweet.handle}</span>
                             </a>
+                            {tweet.isBest && <span className="ml-2 px-1.5 py-0.5 rounded text-[0.7em] font-bold bg-[#FFD700] text-black">BEST</span>}
                           </div>
                           <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === tweet.id ? null : tweet.id); }} className="text-gray-500 hover:text-[var(--theme-color)] p-1 rounded-full hover:bg-[var(--card-bg-color)] transition-colors absolute right-0 top-[-4px] z-50">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="2" /><circle cx="12" cy="4" r="2" /><circle cx="12" cy="20" r="2" /></svg>
@@ -431,6 +460,12 @@ function App() {
                             </div>
                           )}
                         </div>
+                        {/* ★追加: 返信先の表示 (1行目に固定化) */}
+                        {tweet.replyTo && (
+                          <div className="text-[0.9em] text-gray-500 mb-0.5">
+                            返信先: <a href={`https://x.com/${tweet.replyTo.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="text-[#1d9bf0] hover:underline">{tweet.replyTo}</a>
+                          </div>
+                        )}
                         <TweetText text={tweet.text} onHashtagClick={handleTrendClick} />
                         {activeTab !== 'text' && tweet.mediaUrl && (
                           <div className="mt-3"><img src={tweet.mediaUrl} alt="Attached media" className="rounded-lg border border-gray-700 max-h-60 w-auto object-contain"/></div>
@@ -441,7 +476,6 @@ function App() {
                             <div className="flex items-center gap-1 group cursor-pointer hover:text-green-400 transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="17 1 21 5 17 9" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><polyline points="7 23 3 19 7 15" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>{tweet.retweetCount && <span className="text-xs ml-1">{tweet.retweetCount}</span>}</div>
                             <div className="flex items-center gap-1 group cursor-pointer hover:text-pink-400 transition-colors"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>{tweet.likeCount && <span className="text-xs ml-1">{tweet.likeCount}</span>}</div>
                           </div>
-                          {/* ★修正: 返信ポストなどで時刻が「Now」など固定文字の場合はそのまま、そうでなければRelativeTime */}
                           <a href={tweet.url} target="_blank" rel="noopener noreferrer" className="ml-auto text-[#1d9bf0] hover:underline cursor-pointer">
                             {tweet.timestamp === 'Now' ? 'Now' : <RelativeTime initialText={tweet.timestamp} createdAt={tweet.createdAt} />}
                           </a>
