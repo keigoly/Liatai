@@ -1,5 +1,5 @@
 // src/components/SettingsPanel.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { ThemeColor, BgMode, FontSize, NgSettings, NgWord } from '../types';
 
@@ -19,15 +19,19 @@ interface AccordionProps {
   isOpen: boolean;
   onToggle: () => void;
   children: React.ReactNode;
+  isNew?: boolean; // ★追加: NEWバッジ用
 }
 
-const SettingsAccordion: React.FC<AccordionProps> = ({ title, currentValueLabel, isOpen, onToggle, children }) => {
+const SettingsAccordion: React.FC<AccordionProps> = ({ title, currentValueLabel, isOpen, onToggle, children, isNew }) => {
   const [animationParent] = useAutoAnimate({ duration: 300, easing: 'ease-in-out' });
   return (
     <div ref={animationParent} className="border border-[var(--border-color)] rounded-lg overflow-hidden bg-[var(--card-bg-color)] transition-colors">
       <button onClick={onToggle} className="w-full flex items-center justify-between p-3 text-left hover:brightness-110 transition-all z-10 relative bg-[var(--card-bg-color)]">
         <div>
-          <div className="text-sm font-bold text-white">{title}</div>
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-bold text-white">{title}</div>
+            {isNew && <span className="bg-red-500 text-white text-[0.6rem] font-bold px-1.5 py-0.5 rounded animate-pulse">NEW</span>}
+          </div>
           {currentValueLabel && <div className="text-xs text-gray-400 mt-0.5">現在: {currentValueLabel}</div>}
         </div>
         <div className={`text-gray-400 transition-transform duration-300 ease-in-out ${isOpen ? 'rotate-180' : ''}`}>▼</div>
@@ -36,6 +40,15 @@ const SettingsAccordion: React.FC<AccordionProps> = ({ title, currentValueLabel,
     </div>
   );
 };
+
+// ★追加: GitHubリリースの型定義
+interface ReleaseData {
+  tag_name: string;
+  name: string;
+  body: string;
+  html_url: string;
+  published_at: string;
+}
 
 interface SettingsPanelProps {
   trendRefreshInterval: number;
@@ -62,6 +75,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   const [isNgSettingOpen, setIsNgSettingOpen] = useState(false);
   const [isDesignSettingOpen, setIsDesignSettingOpen] = useState(false);
   const [isOtherSettingOpen, setIsOtherSettingOpen] = useState(false);
+  
+  // ★追加: アップデート情報用のState
+  const [isUpdateInfoOpen, setIsUpdateInfoOpen] = useState(false);
+  const [releaseInfo, setReleaseInfo] = useState<ReleaseData | null>(null);
 
   const [parent] = useAutoAnimate({ duration: 300, easing: 'ease-in-out' });
 
@@ -71,6 +88,22 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   
   const [isClosing, setIsClosing] = useState(false);
   const [ngListRef] = useAutoAnimate({ duration: 300, easing: 'ease-in-out' });
+
+  // ★追加: GitHub APIから最新リリース情報を取得
+  useEffect(() => {
+    const fetchRelease = async () => {
+      try {
+        const res = await fetch('https://api.github.com/repos/keigoly/liatai/releases/latest');
+        if (res.ok) {
+          const data = await res.json();
+          setReleaseInfo(data);
+        }
+      } catch (e) {
+        console.error('Failed to fetch release info', e);
+      }
+    };
+    fetchRelease();
+  }, []);
 
   const startEdit = (mode: 'comments' | 'userIds') => {
     setTempNgSettings(JSON.parse(JSON.stringify(ngSettings)));
@@ -291,6 +324,35 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
           <p className="text-xs text-gray-500 mt-3 px-1">※自動更新スイッチがONの場合に有効です。</p>
         </SettingsAccordion>
+
+        {/* ★追加: 最新のアップデート情報（GitHub連動） */}
+        {releaseInfo && (
+          <SettingsAccordion
+            title="最新のアップデート情報"
+            currentValueLabel={releaseInfo.tag_name}
+            isOpen={isUpdateInfoOpen}
+            onToggle={() => setIsUpdateInfoOpen(!isUpdateInfoOpen)}
+            isNew={true}
+          >
+            <div className="p-4 bg-[var(--card-bg-color)]">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-bold text-white">{releaseInfo.name || releaseInfo.tag_name}</span>
+                <span className="text-xs text-gray-500">{new Date(releaseInfo.published_at).toLocaleDateString()}</span>
+              </div>
+              <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[200px] overflow-y-auto mb-4 p-2 bg-[var(--bg-color)] rounded border border-[var(--border-color)]">
+                {releaseInfo.body || '更新内容の詳細はありません。'}
+              </div>
+              <a 
+                href={releaseInfo.html_url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block w-full text-center py-2 text-sm font-bold text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors border border-gray-600"
+              >
+                GitHubで詳細を見る
+              </a>
+            </div>
+          </SettingsAccordion>
+        )}
 
         <SettingsAccordion
           title="NG設定"
