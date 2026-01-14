@@ -9,6 +9,7 @@ import type { TrendItem, TabType, ViewType, HomeTabType } from './types/index';
 
 // フック
 import { useSettings, useSearchHistory, useTheme, useTweets } from './hooks/index';
+import { useLanguage } from './hooks/useLanguage';
 
 // コンポーネント
 import { Header } from './components/Header';
@@ -20,6 +21,7 @@ import { TrendList } from './components/home/TrendList';
 function App() {
   // ========== カスタムフックで状態管理 ==========
   const settings = useSettings();
+  const { language, setLanguage, t } = useLanguage();
   const searchHistoryState = useSearchHistory();
   const themeStyles = useTheme({
     themeColor: settings.themeColor,
@@ -151,6 +153,7 @@ function App() {
 
       <div className="w-full max-w-[450px] flex flex-col h-full border-r border-[var(--border-color)] bg-[var(--bg-color)] relative transition-colors duration-300">
         <Header
+          t={t}
           currentView={currentView}
           homeTab={homeTab}
           setHomeTab={setHomeTab}
@@ -182,9 +185,12 @@ function App() {
           {currentView === 'home' && (
             <div key="home-view" className="h-full flex flex-col">
               {homeTab === 'trends' && <TrendList trends={trends} isLoading={isTrendLoading} onTrendClick={handleTrendClick} />}
-              {homeTab === 'registered' && <RegisteredPanel onSearch={handleTrendClick} />}
+              {homeTab === 'registered' && <RegisteredPanel t={t} onSearch={handleTrendClick} />}
               {homeTab === 'settings' && (
                 <SettingsPanel
+                  language={language}
+                  setLanguage={setLanguage}
+                  t={t}
                   trendRefreshInterval={settings.trendRefreshInterval}
                   setTrendRefreshInterval={settings.setTrendRefreshInterval}
                   searchRefreshInterval={settings.searchRefreshInterval}

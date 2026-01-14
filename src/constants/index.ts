@@ -56,6 +56,7 @@ export const BG_MODE_OPTIONS = [
 
 // ========== ストレージキー ==========
 export const STORAGE_KEYS = {
+    LANGUAGE: 'sidestream_settings_language',
     AUTO_REFRESH: 'sidestream_settings_autoRefresh',
     TREND_INTERVAL: 'sidestream_settings_trendInterval',
     SEARCH_INTERVAL: 'sidestream_settings_searchInterval',
@@ -72,6 +73,7 @@ export const STORAGE_KEYS = {
 // ========== デフォルト値 ==========
 
 export const DEFAULTS: {
+    LANGUAGE: 'ja' | 'en';
     AUTO_REFRESH: boolean;
     TREND_INTERVAL: number;
     SEARCH_INTERVAL: number;
@@ -83,6 +85,7 @@ export const DEFAULTS: {
     MAX_TWEETS: number;
     MAX_HISTORY: number;
 } = {
+    LANGUAGE: 'ja',
     AUTO_REFRESH: true,
     TREND_INTERVAL: 60000,
     SEARCH_INTERVAL: 5000,

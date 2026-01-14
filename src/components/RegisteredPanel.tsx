@@ -2,8 +2,10 @@
 import { useState, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { RegisteredItem, FolderItem } from '../types';
+import type { TranslationKey } from '../i18n/translations';
 
 interface Props {
+  t: (key: TranslationKey) => string;
   onSearch: (keyword: string) => void;
 }
 
@@ -24,7 +26,7 @@ const FOLDER_COLORS = [
   '#FF0080', // ローズ (330°)
 ];
 
-export const RegisteredPanel = ({ onSearch }: Props) => {
+export const RegisteredPanel = ({ t, onSearch }: Props) => {
   const [activeTab, setActiveTab] = useState<SubTab>(() => {
     try {
       const saved = localStorage.getItem('sidestream_registered_panel_tab');
@@ -346,7 +348,7 @@ export const RegisteredPanel = ({ onSearch }: Props) => {
             style={{ animation: 'modalPopup 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}
           >
             <h3 className="font-bold text-lg mb-4 text-center">
-              {modalData.id === '' ? '新規フォルダ作成' : 'フォルダを編集'}
+              {modalData.id === '' ? t('createNewFolder') : t('editFolder')}
             </h3>
 
             <input
@@ -354,7 +356,7 @@ export const RegisteredPanel = ({ onSearch }: Props) => {
               value={modalData.name}
               onChange={(e) => setModalData({ ...modalData, name: e.target.value })}
               className="w-full bg-[#202327] border border-gray-600 rounded px-3 py-2 text-white mb-4 focus:border-[var(--theme-color)] outline-none"
-              placeholder="フォルダ名を入力"
+              placeholder={t('enterFolderName')}
             />
 
             <div className="grid grid-cols-6 gap-3 mb-5 px-2">
@@ -376,7 +378,7 @@ export const RegisteredPanel = ({ onSearch }: Props) => {
                 value={modalWordInput}
                 onChange={(e) => setModalWordInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addModalWord()}
-                placeholder="ワード/タグを追加..."
+                placeholder={t('addWordOrTag')}
                 className="flex-1 bg-[#202327] border border-gray-600 rounded px-3 py-1.5 text-sm text-white focus:border-[var(--theme-color)] outline-none placeholder-gray-500"
               />
               <button
@@ -387,12 +389,12 @@ export const RegisteredPanel = ({ onSearch }: Props) => {
               </button>
             </div>
             <p className="text-[10px] text-gray-500 mb-3 text-right">
-              ※最大100件まで登録可能（リスト表示は上位10件のみ）
+              {t('maxWordsNote')}
             </p>
 
             <div className="flex-1 overflow-y-auto mb-4 min-h-[150px] scrollbar-hide">
               {modalData.items.length === 0 ? (
-                <div className="text-center text-gray-500 text-xs py-10">登録ワードなし</div>
+                <div className="text-center text-gray-500 text-xs py-10">{t('noRegisteredWordsShort')}</div>
               ) : (
                 modalData.items.map((w, index) => (
                   <div
@@ -432,8 +434,8 @@ export const RegisteredPanel = ({ onSearch }: Props) => {
             </div>
 
             <div className="flex gap-3 mt-auto">
-              <button onClick={() => setModalData(null)} className="flex-1 py-2 rounded-full border border-gray-600 hover:bg-gray-800 transition-colors text-sm font-bold">キャンセル</button>
-              <button onClick={addFolder} className="flex-1 py-2 rounded-full bg-[var(--theme-color)] text-white font-bold hover:opacity-90 transition-opacity text-sm">保存</button>
+              <button onClick={() => setModalData(null)} className="flex-1 py-2 rounded-full border border-gray-600 hover:bg-gray-800 transition-colors text-sm font-bold">{t('cancel')}</button>
+              <button onClick={addFolder} className="flex-1 py-2 rounded-full bg-[var(--theme-color)] text-white font-bold hover:opacity-90 transition-opacity text-sm">{t('save')}</button>
             </div>
           </div>
         </div>
@@ -449,13 +451,13 @@ export const RegisteredPanel = ({ onSearch }: Props) => {
           onClick={() => setActiveTab('words')}
           className={`flex-1 py-3 text-sm font-bold transition-colors ${activeTab === 'words' ? 'text-[var(--theme-color)] border-b-2 border-[var(--theme-color)]' : 'text-gray-500 hover:bg-[var(--card-bg-color)]'}`}
         >
-          登録ワード
+          {t('words')}
         </button>
         <button
           onClick={() => setActiveTab('folders')}
           className={`flex-1 py-3 text-sm font-bold transition-colors ${activeTab === 'folders' ? 'text-[var(--theme-color)] border-b-2 border-[var(--theme-color)]' : 'text-gray-500 hover:bg-[var(--card-bg-color)]'}`}
         >
-          フォルダ
+          {t('folders')}
         </button>
       </div>
 
@@ -469,21 +471,21 @@ export const RegisteredPanel = ({ onSearch }: Props) => {
                   value={wordInput}
                   onChange={(e) => setWordInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addWord()}
-                  placeholder="ワード/タグを入力..."
+                  placeholder={t('enterWordOrTag')}
                   className="flex-1 bg-[var(--card-bg-color)] border border-transparent focus:border-[var(--theme-color)] rounded-full px-4 py-2 text-white placeholder-gray-500 outline-none transition-all"
                 />
                 <button
                   onClick={addWord}
                   className="bg-[var(--theme-color)] text-white px-5 py-2 rounded-full font-bold hover:opacity-90 transition-opacity text-sm whitespace-nowrap"
                 >
-                  追加
+                  {t('add')}
                 </button>
               </div>
             </div>
 
             <div ref={listRef} className="flex-1 overflow-y-auto scrollbar-hide pb-20">
               {words.length === 0 ? (
-                <div className="text-center text-gray-500 py-10 text-sm">登録ワードはありません</div>
+                <div className="text-center text-gray-500 py-10 text-sm">{t('noRegisteredWords')}</div>
               ) : (
                 words.map((item) => (
                   <div
@@ -522,13 +524,13 @@ export const RegisteredPanel = ({ onSearch }: Props) => {
                             onClick={(e) => { e.stopPropagation(); toggleWordPin(item.id); }}
                             className="w-full text-center px-4 py-2 text-sm text-white hover:bg-[#2f3336] transition-colors font-bold border-b border-gray-800"
                           >
-                            {item.isPinned ? '固定解除' : '固定'}
+                            {item.isPinned ? t('unpin') : t('pin')}
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); removeWord(item.id); }}
                             className="w-full text-center px-4 py-2 text-sm text-red-400 hover:bg-[#2f3336] transition-colors font-bold"
                           >
-                            削除
+                            {t('delete')}
                           </button>
                         </div>
                       )}
@@ -547,13 +549,13 @@ export const RegisteredPanel = ({ onSearch }: Props) => {
                 onClick={handleOpenCreateModal}
                 className="w-full py-3 rounded-full border border-[var(--border-color)] hover:bg-[var(--card-bg-color)] text-[var(--theme-color)] font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
               >
-                <span>＋</span> 新規フォルダを追加
+                <span>＋</span> {t('createNewFolderButton')}
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-3 pb-32">
               {folders.length === 0 ? (
-                <div className="text-center text-gray-500 py-10 text-sm">フォルダを作成できます</div>
+                <div className="text-center text-gray-500 py-10 text-sm">{t('youCanCreateFolders')}</div>
               ) : (
                 folders.map((folder, index) => (
                   <div
@@ -617,19 +619,19 @@ export const RegisteredPanel = ({ onSearch }: Props) => {
                               onClick={(e) => { e.stopPropagation(); handleOpenEditModal(folder); }}
                               className="w-full text-center px-4 py-3 text-sm text-white hover:bg-[#2f3336] transition-colors font-bold border-b border-gray-800"
                             >
-                              編集
+                              {t('edit')}
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); togglePin(folder.id); }}
                               className="w-full text-center px-4 py-3 text-sm text-white hover:bg-[#2f3336] transition-colors font-bold border-b border-gray-800"
                             >
-                              {folder.isPinned ? '固定解除' : '固定'}
+                              {folder.isPinned ? t('unpin') : t('pin')}
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); removeFolder(folder.id); }}
                               className="w-full text-center px-4 py-3 text-sm text-red-400 hover:bg-[#2f3336] transition-colors font-bold"
                             >
-                              削除
+                              {t('delete')}
                             </button>
                           </div>
                         )}
@@ -645,7 +647,7 @@ export const RegisteredPanel = ({ onSearch }: Props) => {
                       <div className="overflow-hidden">
                         <div className="bg-[#16181c] border-t border-gray-700 rounded-b-2xl">
                           {folder.items.length === 0 ? (
-                            <div className="p-4 text-center text-gray-500 text-xs">登録ワードなし</div>
+                            <div className="p-4 text-center text-gray-500 text-xs">{t('noRegisteredWordsShort')}</div>
                           ) : (
                             folder.items.slice(0, 10).map(item => (
                               <div

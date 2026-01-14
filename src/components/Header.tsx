@@ -1,12 +1,14 @@
 // src/components/Header.tsx
 import { useState, useRef, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
+import type { TranslationKey } from '../i18n/translations';
 
 type ViewType = 'home' | 'search';
 type HomeTabType = 'trends' | 'registered' | 'settings';
 type TabType = 'all' | 'text' | 'media';
 
 interface HeaderProps {
+  t: (key: TranslationKey) => string;
   currentView: ViewType;
   homeTab: HomeTabType;
   setHomeTab: (tab: HomeTabType) => void;
@@ -26,6 +28,7 @@ interface HeaderProps {
 }
 
 export const Header = ({
+  t,
   currentView,
   homeTab,
   setHomeTab,
@@ -76,7 +79,7 @@ export const Header = ({
             <input
               type="text"
               className="w-full bg-[#202327] border border-gray-600 text-white rounded-full py-2 pl-4 pr-10 focus:outline-none focus:border-[var(--theme-color)] focus:bg-black transition-all"
-              placeholder="検索ワード"
+              placeholder={t('searchPlaceholder')}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => {
@@ -101,8 +104,8 @@ export const Header = ({
           {isHistoryOpen && !inputValue && searchHistory.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-2 bg-black border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden z-50">
               <div className="flex justify-between items-center px-4 py-2 bg-[var(--card-bg-color)] border-b border-[var(--border-color)]">
-                <span className="text-xs text-gray-400 font-bold">検索履歴</span>
-                <button onClick={onClearAllHistory} className="text-xs text-red-400 hover:underline">すべて削除</button>
+                <span className="text-xs text-gray-400 font-bold">{t('searchHistory')}</span>
+                <button onClick={onClearAllHistory} className="text-xs text-red-400 hover:underline">{t('deleteAll')}</button>
               </div>
               <ul ref={historyRef} className="max-h-60 overflow-y-auto scrollbar-hide">
                 {searchHistory.map((word, index) => (
@@ -134,7 +137,7 @@ export const Header = ({
         </div>
 
         <button onClick={onSearch} className="bg-[var(--theme-color)] text-white font-bold py-1.5 px-4 rounded-full hover:brightness-90 transition-all text-sm whitespace-nowrap">
-          検索
+          {t('search')}
         </button>
       </div>
 
@@ -142,15 +145,15 @@ export const Header = ({
       <div className="flex items-end px-2">
         {currentView === 'home' ? (
           <>
-            <button onClick={() => setHomeTab('trends')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${homeTab === 'trends' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>トレンド</button>
-            <button onClick={() => setHomeTab('registered')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${homeTab === 'registered' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>登録</button>
-            <button onClick={() => setHomeTab('settings')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${homeTab === 'settings' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>設定</button>
+            <button onClick={() => setHomeTab('trends')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${homeTab === 'trends' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>{t('trends')}</button>
+            <button onClick={() => setHomeTab('registered')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${homeTab === 'registered' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>{t('registered')}</button>
+            <button onClick={() => setHomeTab('settings')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${homeTab === 'settings' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>{t('settings')}</button>
           </>
         ) : (
           <>
-            <button onClick={() => setActiveTab('all')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${activeTab === 'all' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>すべて</button>
-            <button onClick={() => setActiveTab('text')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${activeTab === 'text' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>ポストのみ</button>
-            <button onClick={() => setActiveTab('media')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${activeTab === 'media' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>画像・動画</button>
+            <button onClick={() => setActiveTab('all')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${activeTab === 'all' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>{t('all')}</button>
+            <button onClick={() => setActiveTab('text')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${activeTab === 'text' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>{t('postsOnly')}</button>
+            <button onClick={() => setActiveTab('media')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${activeTab === 'media' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>{t('media')}</button>
           </>
         )}
       </div>
@@ -181,7 +184,7 @@ export const Header = ({
                   }
                 }}
                 className="p-1.5 rounded-full hover:bg-[var(--bg-color)] transition-colors text-gray-400 hover:text-[var(--theme-color)]"
-                title="新しいウィンドウで開く"
+                title={t('openInNewWindow')}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -197,7 +200,7 @@ export const Header = ({
                 <div className={`block w-8 h-5 rounded-full transition-colors ${autoRefresh ? 'bg-[var(--theme-color)]' : 'bg-gray-600'}`}></div>
                 <div className={`dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${autoRefresh ? 'transform translate-x-3' : ''}`}></div>
               </div>
-              <span className="ml-2">自動更新</span>
+              <span className="ml-2">{t('autoRefresh')}</span>
             </label>
           </div>
         )}
