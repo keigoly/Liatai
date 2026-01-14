@@ -45,7 +45,7 @@ export const Header = ({
 }: HeaderProps) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
-  
+
   const [historyRef] = useAutoAnimate<HTMLUListElement>();
 
   useEffect(() => {
@@ -62,13 +62,13 @@ export const Header = ({
 
   return (
     <header className="flex-shrink-0 bg-[var(--bg-color)] border-b border-[var(--border-color)] z-20 relative transition-colors duration-300">
-      
+
       {/* 上段: ホームアイコンと検索窓 */}
       <div className="flex items-center gap-3 p-3">
-        
+
         {/* ★修正: テキストを削除し、アイコンのみのボタンに戻しました */}
         <button onClick={onGoHome} className="p-2 rounded-full hover:bg-[var(--card-bg-color)] transition-colors text-gray-400 hover:text-[var(--theme-color)]">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z" /></svg>
         </button>
 
         <div className="flex-1 relative" ref={searchContainerRef}>
@@ -88,7 +88,7 @@ export const Header = ({
               onFocus={() => setIsHistoryOpen(true)}
             />
             {inputValue && (
-              <button 
+              <button
                 onClick={() => { setInputValue(''); }}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-white bg-gray-700 hover:bg-gray-600 rounded-full w-5 h-5 flex items-center justify-center text-xs transition-colors"
               >
@@ -108,7 +108,7 @@ export const Header = ({
                 {searchHistory.map((word, index) => (
                   <li key={word + index} className="border-b border-[var(--border-color)] last:border-0">
                     <div className="flex items-center hover:bg-[var(--card-bg-color)] transition-colors cursor-pointer group">
-                      <div 
+                      <div
                         className="flex-1 px-4 py-3 flex items-center gap-3"
                         onClick={() => {
                           setInputValue(word);
@@ -116,10 +116,10 @@ export const Header = ({
                           setIsHistoryOpen(false);
                         }}
                       >
-                        <span className="text-gray-500"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+                        <span className="text-gray-500"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg></span>
                         <span className="text-white text-sm">{word}</span>
                       </div>
-                      <button 
+                      <button
                         onClick={(e) => { e.stopPropagation(); onRemoveHistory(word); }}
                         className="p-3 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
@@ -148,9 +148,9 @@ export const Header = ({
           </>
         ) : (
           <>
-             <button onClick={() => setActiveTab('all')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${activeTab === 'all' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>すべて</button>
-             <button onClick={() => setActiveTab('text')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${activeTab === 'text' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>ポストのみ</button>
-             <button onClick={() => setActiveTab('media')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${activeTab === 'media' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>画像・動画</button>
+            <button onClick={() => setActiveTab('all')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${activeTab === 'all' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>すべて</button>
+            <button onClick={() => setActiveTab('text')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${activeTab === 'text' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>ポストのみ</button>
+            <button onClick={() => setActiveTab('media')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${activeTab === 'media' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>画像・動画</button>
           </>
         )}
       </div>
@@ -158,9 +158,39 @@ export const Header = ({
       {/* 更新情報バー */}
       <div className="flex justify-between items-center px-4 py-1 bg-[var(--card-bg-color)] border-b border-[var(--border-color)] text-xs text-gray-400">
         <span>{currentView === 'home' && homeTab === 'trends' ? trendUpdateTime : ''}</span>
-        
+
         {showAutoRefresh && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* 新しいウィンドウで開くボタン（サイドパネルのみ表示） */}
+            {!window.location.search.includes('popup=true') && (
+              <button
+                onClick={() => {
+                  if (typeof chrome !== 'undefined' && chrome.windows) {
+                    // サイドパネル → ポップアップウィンドウを開く
+                    chrome.windows.create({
+                      url: chrome.runtime.getURL('index.html?popup=true'),
+                      type: 'popup',
+                      width: 420,
+                      height: 700,
+                    });
+                    // サイドパネルを閉じる
+                    window.close();
+                  } else {
+                    // 開発環境ではwindow.openを使用
+                    window.open(window.location.href + '?popup=true', '_blank', 'width=420,height=700,popup=true');
+                  }
+                }}
+                className="p-1.5 rounded-full hover:bg-[var(--bg-color)] transition-colors text-gray-400 hover:text-[var(--theme-color)]"
+                title="新しいウィンドウで開く"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <line x1="9" y1="3" x2="9" y2="21" />
+                </svg>
+              </button>
+            )}
+
+            {/* 自動更新スイッチ */}
             <label className="flex items-center cursor-pointer">
               <div className="relative">
                 <input type="checkbox" className="sr-only" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />

@@ -5,7 +5,9 @@
   "description": "実況のお供に。",
   "permissions": [
     "sidePanel",
-    "storage"
+    "storage",
+    "windows",
+    "tabs"
   ],
   "host_permissions": [
     "https://search.yahoo.co.jp/*"
