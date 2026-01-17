@@ -1,9 +1,16 @@
 # Liatai (Real-time!)
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [日本語](README.md) | English
+
+---
+
+## 🆕 v1.1.1 Updates
+
+### Fixes
+* **🔧 Chrome Web Store Policy Compliance**: Removed unused `storage` permission to fully comply with store policies.
 
 ---
 

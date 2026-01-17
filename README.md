@@ -1,9 +1,16 @@
 # リアタイ！ (Liatai)
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](README_EN.md) | 日本語
+
+---
+
+## 🆕 v1.1.1 アップデート
+
+### 修正
+* **🔧 Chrome Web Storeポリシー準拠**: 未使用の`storage`権限を削除し、ストアポリシーに完全準拠しました。
 
 ---
 
