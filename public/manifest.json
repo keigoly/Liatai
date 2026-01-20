@@ -1,11 +1,10 @@
 {
   "manifest_version": 3,
   "name": "リアタイ！",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "実況のお供に。",
   "permissions": [
     "sidePanel",
-    "storage",
     "windows",
     "tabs"
   ],
