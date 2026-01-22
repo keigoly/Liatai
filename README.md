@@ -1,6 +1,6 @@
 # リアタイ！ (Liatai)
 
-[![Version](https://img.shields.io/badge/version-1.1.1-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.1.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](README_EN.md) | 日本語
