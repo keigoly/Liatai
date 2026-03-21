@@ -20,7 +20,7 @@ export const generateHashId = (str: string): string => {
 
 /**
  * 相対時間文字列をタイムスタンプに変換する
- * @param timeStr 相対時間文字列（例: "5秒", "3分"）
+ * @param timeStr 相対時間文字列（例: "5秒", "3分", "2時間", "1日"）
  * @returns ミリ秒単位のタイムスタンプ
  */
 export const parseRelativeTime = (timeStr: string): number => {
@@ -32,6 +32,12 @@ export const parseRelativeTime = (timeStr: string): number => {
 
     const minMatch = timeStr.match(/(\d+)分/);
     if (minMatch) return now - (parseInt(minMatch[1], 10) * 60000);
+
+    const hourMatch = timeStr.match(/(\d+)時間/);
+    if (hourMatch) return now - (parseInt(hourMatch[1], 10) * 3600000);
+
+    const dayMatch = timeStr.match(/(\d+)日/);
+    if (dayMatch) return now - (parseInt(dayMatch[1], 10) * 86400000);
 
     return now;
 };
