@@ -3,6 +3,7 @@
 
 import type { TrendItem } from '../../types/index';
 import { RANK_COLORS } from '../../constants/index';
+import { SnsShare } from '../SnsShare';
 
 interface TrendListProps {
     trends: TrendItem[];
@@ -123,6 +124,7 @@ export const TrendList = ({ trends, isLoading, onTrendClick }: TrendListProps) =
                     )}
                 </div>
             ))}
+            <SnsShare compact />
         </div>
     );
 };

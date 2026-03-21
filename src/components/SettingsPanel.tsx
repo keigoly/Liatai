@@ -1,8 +1,9 @@
 // src/components/SettingsPanel.tsx
 import React, { useState, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
-import type { ThemeColor, BgMode, FontSize, NgSettings, NgWord } from '../types';
-import { STORAGE_KEYS } from '../constants/index';
+import type { ThemeColor, BgMode, FontSize, NgSettings, NgWord, GraphPeriod } from '../types';
+import { STORAGE_KEYS, GRAPH_PERIOD_OPTIONS } from '../constants/index';
+import { SnsShare } from './SnsShare';
 import type { Language, TranslationKey } from '../i18n/translations';
 
 const RegExpSwitch: React.FC<{ checked: boolean; onChange: (checked: boolean) => void }> = ({ checked, onChange }) => {
@@ -69,17 +70,21 @@ interface SettingsPanelProps {
   setFontSize: (size: FontSize) => void;
   ngSettings: NgSettings;
   setNgSettings: (settings: NgSettings) => void;
+  graphDefaultPeriod: GraphPeriod;
+  setGraphDefaultPeriod: (period: GraphPeriod) => void;
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   language, setLanguage, t,
   trendRefreshInterval, setTrendRefreshInterval, searchRefreshInterval, setSearchRefreshInterval,
   themeColor, setThemeColor, bgMode, setBgMode, fontSize, setFontSize,
-  ngSettings, setNgSettings
+  ngSettings, setNgSettings,
+  graphDefaultPeriod, setGraphDefaultPeriod
 }) => {
   const [isLanguageSettingOpen, setIsLanguageSettingOpen] = useState(false);
   const [isTrendSettingOpen, setIsTrendSettingOpen] = useState(false);
   const [isSearchSettingOpen, setIsSearchSettingOpen] = useState(false);
+  const [isGraphPeriodOpen, setIsGraphPeriodOpen] = useState(false);
   const [isNgSettingOpen, setIsNgSettingOpen] = useState(false);
   const [isDesignSettingOpen, setIsDesignSettingOpen] = useState(false);
   const [isStorageSettingOpen, setIsStorageSettingOpen] = useState(false);
@@ -472,6 +477,27 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <p className="text-xs text-gray-500 mt-3 px-1">{t('autoRefreshNote')}</p>
         </SettingsAccordion>
 
+        {/* グラフ表示期間のデフォルト設定 */}
+        <SettingsAccordion
+          title="ポスト数グラフの表示期間"
+          currentValueLabel={GRAPH_PERIOD_OPTIONS.find(o => o.value === graphDefaultPeriod)?.label || '6時間'}
+          currentLabelText={t('currentLabel')}
+          isOpen={isGraphPeriodOpen}
+          onToggle={() => setIsGraphPeriodOpen(!isGraphPeriodOpen)}
+        >
+          <div className="space-y-2">
+            {GRAPH_PERIOD_OPTIONS.map((option) => (
+              <label key={option.value} className="flex items-center justify-between p-3 rounded-lg cursor-pointer border border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors">
+                <div className="flex items-center gap-3">
+                  <input type="radio" name="graphDefaultPeriod" value={option.value} checked={graphDefaultPeriod === option.value} onChange={() => setGraphDefaultPeriod(option.value)} className="accent-[var(--theme-color)] w-4 h-4" />
+                  <span className="text-sm text-white">{option.label}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-3 px-1">検索時にポスト数グラフに表示するデフォルトの期間を選択します。</p>
+        </SettingsAccordion>
+
         {/* ★追加: 最新のアップデート情報（GitHub連動） */}
         {releaseInfo && (
           <SettingsAccordion
@@ -725,7 +751,24 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <svg className="text-gray-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
             </a>
 
-            {/* 4. 開発者のオフィシャルサイト */}
+            {/* 4. 開発者が製作した拡張機能一覧 */}
+            <a
+              href="https://keigoly.jp/apps"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-4 hover:bg-[var(--bg-color)] transition-colors group"
+            >
+              <div className="p-2 rounded-full bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors overflow-hidden">
+                <img src="/chrome-webstore-icon.png" alt="" width="20" height="20" className="object-contain" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-bold text-white">開発者が製作した拡張機能一覧</div>
+                <div className="text-xs text-gray-500">keigoly.jp/apps</div>
+              </div>
+              <svg className="text-gray-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+            </a>
+
+            {/* 5. 開発者のオフィシャルサイト */}
             <a
               href="https://keigoly.jp/"
               target="_blank"
@@ -745,6 +788,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
         </SettingsAccordion>
 
+        <SnsShare />
       </div>
 
       {renderNgEditorModal()}

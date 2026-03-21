@@ -3,7 +3,7 @@
 
 import { useLocalStorage } from './useLocalStorage';
 import { STORAGE_KEYS, DEFAULTS } from '../constants/index';
-import type { ThemeColor, BgMode, FontSize, NgSettings } from '../types/index';
+import type { ThemeColor, BgMode, FontSize, NgSettings, GraphPeriod } from '../types/index';
 
 export interface SettingsState {
     // 自動更新
@@ -27,6 +27,10 @@ export interface SettingsState {
     // NG設定
     ngSettings: NgSettings;
     setNgSettings: (settings: NgSettings | ((prev: NgSettings) => NgSettings)) => void;
+
+    // グラフ
+    graphDefaultPeriod: GraphPeriod;
+    setGraphDefaultPeriod: React.Dispatch<React.SetStateAction<GraphPeriod>>;
 }
 
 export function useSettings(): SettingsState {
@@ -65,6 +69,11 @@ export function useSettings(): SettingsState {
         DEFAULTS.NG_SETTINGS
     );
 
+    const [graphDefaultPeriod, setGraphDefaultPeriod] = useLocalStorage<GraphPeriod>(
+        STORAGE_KEYS.GRAPH_DEFAULT_PERIOD,
+        DEFAULTS.GRAPH_DEFAULT_PERIOD
+    );
+
     // NG設定用のラッパー関数
     const setNgSettings = (newSettings: NgSettings | ((prev: NgSettings) => NgSettings)) => {
         setNgSettingsState(prev => {
@@ -87,5 +96,7 @@ export function useSettings(): SettingsState {
         setFontSize,
         ngSettings,
         setNgSettings,
+        graphDefaultPeriod,
+        setGraphDefaultPeriod,
     };
 }

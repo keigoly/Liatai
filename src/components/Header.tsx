@@ -168,19 +168,22 @@ export const Header = ({
             {!window.location.search.includes('popup=true') && (
               <button
                 onClick={() => {
+                  // 現在の検索キーワードをURLパラメータに含める
+                  const params = new URLSearchParams({ popup: 'true' });
+                  const currentInput = document.querySelector<HTMLInputElement>('input[type="text"]');
+                  if (currentInput?.value) params.set('q', currentInput.value);
+                  const popupHeight = Math.min(screen.availHeight - 40, 1200);
+
                   if (typeof chrome !== 'undefined' && chrome.windows) {
-                    // サイドパネル → ポップアップウィンドウを開く
                     chrome.windows.create({
-                      url: chrome.runtime.getURL('index.html?popup=true'),
+                      url: chrome.runtime.getURL(`index.html?${params.toString()}`),
                       type: 'popup',
                       width: 420,
-                      height: 700,
+                      height: popupHeight,
                     });
-                    // サイドパネルを閉じる
                     window.close();
                   } else {
-                    // 開発環境ではwindow.openを使用
-                    window.open(window.location.href + '?popup=true', '_blank', 'width=420,height=700,popup=true');
+                    window.open(`${window.location.pathname}?${params.toString()}`, '_blank', `width=420,height=${popupHeight},popup=true`);
                   }
                 }}
                 className="p-1.5 rounded-full hover:bg-[var(--bg-color)] transition-colors text-gray-400 hover:text-[var(--theme-color)]"

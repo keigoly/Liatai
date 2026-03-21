@@ -3,7 +3,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { fetchRealtimeTweets } from '../services/realtimeService';
-import { sortNewestFirst } from '../utils/helpers';
+import { sortNewestFirst, isRelevantToKeyword } from '../utils/helpers';
 import { DEFAULTS } from '../constants/index';
 import type { Tweet, NgSettings } from '../types/index';
 
@@ -48,7 +48,8 @@ export function useTweets({
 
         try {
             const { best, timeline } = await fetchRealtimeTweets(query);
-            const sortedTimeline = sortNewestFirst([...timeline]);
+            const relevantTimeline = timeline.filter(t => isRelevantToKeyword(t.text, query));
+            const sortedTimeline = sortNewestFirst([...relevantTimeline]);
 
             const now = Date.now();
             let effectiveBest = best;
@@ -64,19 +65,29 @@ export function useTweets({
             }
 
             if (isBackground) {
-                const incoming = effectiveBest ? [effectiveBest, ...sortedTimeline] : sortedTimeline;
                 if (isScrolled) {
                     setPendingTweets(prevPending => {
                         const currentIds = new Set(tweets.map(t => t.id));
                         const pendingIds = new Set(prevPending.map(t => t.id));
-                        const uniqueNew = incoming.filter(t => !currentIds.has(t.id) && !pendingIds.has(t.id));
+                        const uniqueNew = sortedTimeline.filter(t => !currentIds.has(t.id) && !pendingIds.has(t.id));
+                        // ベストポストは重複チェックせずペンディングに追加（先頭表示のため）
+                        if (effectiveBest) {
+                            const withoutOldBest = prevPending.filter(t => t.id !== effectiveBest!.id);
+                            return [effectiveBest, ...sortNewestFirst([...uniqueNew, ...withoutOldBest])];
+                        }
                         if (uniqueNew.length === 0) return prevPending;
                         return sortNewestFirst([...uniqueNew, ...prevPending]);
                     });
                 } else {
                     setTweets(prev => {
                         const existingIds = new Set(prev.map(t => t.id));
-                        const uniqueNew = incoming.filter(t => !existingIds.has(t.id));
+                        const uniqueNew = sortedTimeline.filter(t => !existingIds.has(t.id));
+                        // ベストポストは既存リストから除去して先頭に再配置
+                        if (effectiveBest) {
+                            const withoutOldBest = prev.filter(t => t.id !== effectiveBest!.id);
+                            const newTimeline = uniqueNew.length > 0 ? [...uniqueNew, ...withoutOldBest] : withoutOldBest;
+                            return [effectiveBest, ...newTimeline].slice(0, DEFAULTS.MAX_TWEETS);
+                        }
                         if (uniqueNew.length === 0) return prev;
                         const combined = [...uniqueNew, ...prev];
                         return combined.slice(0, DEFAULTS.MAX_TWEETS);

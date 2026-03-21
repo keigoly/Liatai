@@ -1,7 +1,7 @@
 // src/constants/index.ts
 // アプリケーション全体で使用する定数を集約
 
-import type { ThemeColor, FontSize, NgSettings } from '../types/index';
+import type { ThemeColor, FontSize, NgSettings, GraphPeriod } from '../types/index';
 
 // ========== テーマカラー ==========
 export const THEME_COLORS: ThemeColor[] = [
@@ -47,6 +47,14 @@ export const FOLDER_COLORS = [
     '#a855f7', // Fuchsia
 ] as const;
 
+// ========== グラフデフォルト期間 ==========
+export const GRAPH_PERIOD_OPTIONS: { label: string; value: GraphPeriod }[] = [
+    { label: '6時間', value: '6h' },
+    { label: '24時間', value: '24h' },
+    { label: '7日', value: '7d' },
+    { label: '30日', value: '30d' },
+];
+
 // ========== 背景モード ==========
 export const BG_MODE_OPTIONS = [
     { mode: 'default' as const, label: 'デフォルト', color: '#15202b' },
@@ -68,6 +76,7 @@ export const STORAGE_KEYS = {
     REGISTERED_WORDS: 'sidestream_registered_words',
     FOLDERS: 'sidestream_folders',
     REGISTERED_PANEL_TAB: 'sidestream_registered_panel_tab',
+    GRAPH_DEFAULT_PERIOD: 'sidestream_settings_graphDefaultPeriod',
 } as const;
 
 // ========== デフォルト値 ==========
@@ -84,6 +93,7 @@ export const DEFAULTS: {
     SEARCH_HISTORY: string[];
     MAX_TWEETS: number;
     MAX_HISTORY: number;
+    GRAPH_DEFAULT_PERIOD: GraphPeriod;
 } = {
     LANGUAGE: 'ja',
     AUTO_REFRESH: true,
@@ -96,6 +106,7 @@ export const DEFAULTS: {
     SEARCH_HISTORY: [],
     MAX_TWEETS: 50,
     MAX_HISTORY: 20,
+    GRAPH_DEFAULT_PERIOD: '6h',
 };
 
 // ========== ランクカラー ==========

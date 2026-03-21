@@ -1,12 +1,93 @@
 // src/services/realtimeService.ts
 
-import type { Tweet, TrendItem, TrendResult, FetchTweetsResult, TrendState } from '../types/index';
+import type { Tweet, TrendItem, TrendResult, FetchTweetsResult, TrendState, TransitionResult, GraphPeriod } from '../types/index';
 import { generateHashId, parseRelativeTime } from '../utils/helpers';
 
 // Re-export types for backward compatibility
-export type { Tweet, TrendItem, TrendResult, FetchTweetsResult, TrendState };
+export type { Tweet, TrendItem, TrendResult, FetchTweetsResult, TrendState, TransitionResult, GraphPeriod };
 
+// ========== JSON エントリ型 ==========
+interface JsonEntry {
+  id: string | number;
+  url?: string;
+  displayText?: string;
+  displayTextBody?: string;
+  name?: string;
+  screenName?: string;
+  createdAt?: number;
+  profileImage?: string;
+  likesCount?: number;
+  rtCount?: number;
+  qtCount?: number;
+  replyCount?: number;
+  media?: Array<{ thumbnailUrl?: string }>;
+  replyScreenName?: string;
+  badge?: { show?: boolean; type?: string; color?: string };
+}
 
+// ========== 共通: JSONエントリ → Tweet 変換 ==========
+const mapEntryToTweet = (entry: JsonEntry): Tweet => {
+  const createdAtMs = entry.createdAt ? entry.createdAt * 1000 : Date.now();
+  const now = Date.now();
+  const diffSec = Math.floor((now - createdAtMs) / 1000);
+  let timestamp = '';
+  if (diffSec < 60) timestamp = `${diffSec}秒前`;
+  else if (diffSec < 3600) timestamp = `${Math.floor(diffSec / 60)}分前`;
+  else if (diffSec < 86400) timestamp = `${Math.floor(diffSec / 3600)}時間前`;
+  else timestamp = `${Math.floor(diffSec / 86400)}日前`;
+
+  return {
+    id: String(entry.id),
+    text: entry.displayTextBody || entry.displayText || '',
+    url: entry.url || '',
+    timestamp,
+    createdAt: createdAtMs,
+    author: entry.name || 'Unknown',
+    handle: entry.screenName ? `@${entry.screenName}` : '',
+    iconUrl: entry.profileImage || '',
+    mediaUrl: entry.media && entry.media.length > 0 ? entry.media[0].thumbnailUrl : undefined,
+    retweetCount: entry.rtCount ? String(entry.rtCount) : undefined,
+    likeCount: entry.likesCount ? String(entry.likesCount) : undefined,
+    isBest: false,
+    replyTo: entry.replyScreenName ? `@${entry.replyScreenName}` : undefined,
+  };
+};
+
+// ========== 方式1: __NEXT_DATA__ JSON パース ==========
+const parseFromJson = (doc: Document): FetchTweetsResult | null => {
+  try {
+    const scriptEl = doc.getElementById('__NEXT_DATA__');
+    if (!scriptEl?.textContent) return null;
+
+    const json = JSON.parse(scriptEl.textContent);
+    const pageProps = json?.props?.pageProps;
+    if (!pageProps) return null;
+
+    // Yahoo のJSON構造: pageProps.pageData 内にデータがある場合と、pageProps 直下の場合がある
+    const dataSource = pageProps.pageData || pageProps;
+
+    // タイムライン
+    const entries: JsonEntry[] = dataSource.timeline?.entry;
+    if (!Array.isArray(entries) || entries.length === 0) return null;
+
+    const timeline = entries.map(entry => mapEntryToTweet(entry));
+
+    // ベストポスト（Yahoo本家と同じ: 専用フィールドから取得）
+    let bestTweet: Tweet | null = null;
+    const bestEntry: JsonEntry | undefined = dataSource.bestTweet;
+    if (bestEntry) {
+      bestTweet = { ...mapEntryToTweet(bestEntry), isBest: true };
+    }
+
+    console.log('[parseFromJson] best:', bestTweet ? `${bestTweet.author} (${bestTweet.id})` : 'none', 'timeline:', timeline.length);
+    return { best: bestTweet, timeline };
+  } catch (e) {
+    console.error('[parseFromJson] Parse error:', e);
+    return null;
+  }
+};
+
+// ========== 方式2: DOM パース（フォールバック） ==========
 const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
   try {
     const bodyContainer = el.querySelector('[class*="Tweet_bodyContainer__"]');
@@ -17,23 +98,13 @@ const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
     const iconImg = el.querySelector('[class*="Tweet_icon__"] img') as HTMLImageElement;
     const iconUrl = iconImg ? iconImg.src : "";
 
-    // ★修正: 返信先情報の分離処理
     let replyTo: string | undefined = undefined;
-
-    // bodyElをクローンして、HTML構造を破壊せずに操作
     const bodyClone = bodyEl.cloneNode(true) as HTMLElement;
-
-    // 返信先を示す要素（class名に "Tweet__reply" を含むspan等）を探す
     const replySpan = bodyClone.querySelector('[class*="Tweet__reply"]');
-
     if (replySpan) {
-      // "返信先: @username" のようなテキストから @username を抽出
       const replyText = replySpan.textContent || "";
       const match = replyText.match(/@([a-zA-Z0-9_]+)/);
-      if (match) {
-        replyTo = "@" + match[1];
-      }
-      // 本文から返信先表示を削除して、純粋なメッセージだけにする
+      if (match) replyTo = "@" + match[1];
       replySpan.remove();
     }
 
@@ -47,9 +118,6 @@ const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
 
     const timeEl = el.querySelector('[class*="Tweet_time__"]');
     const timestamp = timeEl?.textContent?.trim() || "";
-
-    // 返信の場合でも実際の時間を表示（Nowに上書きしない）
-
     const createdAt = parseRelativeTime(timestamp);
 
     let tweetId = "";
@@ -73,9 +141,7 @@ const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
       }
     }
 
-    if (!tweetId) {
-      tweetId = generateHashId(handle + text);
-    }
+    if (!tweetId) tweetId = generateHashId(handle + text);
 
     const searchScope = bodyContainer || el;
     const potentialImages = Array.from(searchScope.querySelectorAll('img'));
@@ -112,13 +178,107 @@ const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
   }
 };
 
-// ... (fetchRealtimeTweets, fetchRealtimeTrends は変更なしですが、contextとして必要なら維持してください) ...
-// start: 1 = 最初のページ、21 = 2ページ目、41 = 3ページ目...（20件単位のオフセット）
+// ========== #autosr から最新ツイートをDOM取得 ==========
+const parseAutosrFromDom = (doc: Document): Tweet[] => {
+  const tweets: Tweet[] = [];
+  const container = doc.getElementById('autosr');
+  if (!container) return tweets;
+
+  const wrappers = container.querySelectorAll('[class*="Tweet_TweetContainer__"]');
+  wrappers.forEach(el => {
+    const t = parseTweetElement(el);
+    if (t) tweets.push({ ...t, isBest: false });
+  });
+
+  console.log('[parseAutosrFromDom] Found', tweets.length, 'autosr tweets');
+  return tweets;
+};
+
+const parseDomFallback = (doc: Document): FetchTweetsResult => {
+  let bestTweet: Tweet | null = null;
+  const timelineTweets: Tweet[] = [];
+  const idSet = new Set<string>();
+
+  // DOM構造のデバッグ
+  const hasBt = !!doc.getElementById('bt');
+  const hasAutosr = !!doc.getElementById('autosr');
+  const hasSr = !!doc.getElementById('sr');
+  const hasNextData = !!doc.getElementById('__NEXT_DATA__');
+  console.log('[parseDomFallback] DOM sections: #bt:', hasBt, '#autosr:', hasAutosr, '#sr:', hasSr, '__NEXT_DATA__:', hasNextData);
+
+  // BestTweet クラスで検出（Yahoo本家の構造）
+  const bestTweetEl = doc.querySelector('[class*="BestTweet_BestTweet__"]');
+  if (bestTweetEl) {
+    const bestWrapper = bestTweetEl.querySelector('[class*="Tweet_TweetContainer__"]');
+    if (bestWrapper) {
+      const t = parseTweetElement(bestWrapper);
+      if (t && !idSet.has(t.id)) {
+        bestTweet = { ...t, isBest: true };
+        idSet.add(t.id);
+        console.log('[parseDomFallback] BEST (BestTweet class):', t.author, t.text.substring(0, 50));
+      }
+    }
+  }
+
+  // #bt フォールバック（BestTweet クラスが見つからない場合）
+  if (!bestTweet) {
+    const btContainer = doc.getElementById('bt');
+    if (btContainer) {
+      const bestWrapper = btContainer.querySelector('[class*="Tweet_TweetContainer__"]');
+      if (bestWrapper) {
+        const t = parseTweetElement(bestWrapper);
+        if (t && !idSet.has(t.id)) {
+          bestTweet = { ...t, isBest: true };
+          idSet.add(t.id);
+          console.log('[parseDomFallback] BEST (#bt):', t.author, t.text.substring(0, 50));
+        }
+      }
+    }
+  }
+
+  // #autosr + #sr
+  for (const sectionId of ['autosr', 'sr']) {
+    const container = doc.getElementById(sectionId);
+    if (container) {
+      const wrappers = container.querySelectorAll('[class*="Tweet_TweetContainer__"]');
+      const beforeCount = timelineTweets.length;
+      wrappers.forEach(el => {
+        const t = parseTweetElement(el);
+        if (t && !idSet.has(t.id)) {
+          timelineTweets.push({ ...t, isBest: false });
+          idSet.add(t.id);
+        }
+      });
+      console.log(`[parseDomFallback] #${sectionId}: ${timelineTweets.length - beforeCount} tweets`);
+    }
+  }
+
+  // セクションIDが無い場合、ページ全体からツイートを取得
+  if (timelineTweets.length === 0) {
+    const allWrappers = doc.querySelectorAll('[class*="Tweet_TweetContainer__"]');
+    console.log('[parseDomFallback] No sections found, scanning full page:', allWrappers.length, 'containers');
+    allWrappers.forEach(el => {
+      const t = parseTweetElement(el);
+      if (t && !idSet.has(t.id)) {
+        timelineTweets.push({ ...t, isBest: false });
+        idSet.add(t.id);
+      }
+    });
+  }
+
+  console.log('[parseDomFallback] Result: best:', bestTweet?.author || 'none', 'timeline:', timelineTweets.length);
+  if (timelineTweets.length > 0) {
+    console.log('[parseDomFallback] First 3 timeline:', timelineTweets.slice(0, 3).map(t => `${t.author}: ${t.text.substring(0, 40)}`));
+  }
+
+  return { best: bestTweet, timeline: timelineTweets };
+};
+
+// ========== メイン: ツイート取得 ==========
 export const fetchRealtimeTweets = async (keyword: string, start: number = 1): Promise<FetchTweetsResult> => {
   if (!keyword) return { best: null, timeline: [] };
 
   try {
-    // start=1が最初のページ、start=21が2ページ目（20件単位のオフセット）
     const targetUrl = `https://search.yahoo.co.jp/realtime/search?p=${encodeURIComponent(keyword)}&ei=UTF-8&ord=new${start > 1 ? `&b=${start}` : ''}`;
     console.log('[fetchRealtimeTweets] URL:', targetUrl, 'start:', start);
     const response = await fetch(targetUrl);
@@ -128,57 +288,26 @@ export const fetchRealtimeTweets = async (keyword: string, start: number = 1): P
     const parser = new DOMParser();
     const doc = parser.parseFromString(htmlText, 'text/html');
 
-    let bestTweet: Tweet | null = null;
-    const autoRefreshTweets: Tweet[] = []; // 自動更新エリアのツイート（最新）
-    const timelineTweets: Tweet[] = [];
-    const idSet = new Set<string>();
+    // === 方式1: __NEXT_DATA__ JSON + DOM #autosr（Yahoo本家準拠） ===
+    const jsonResult = parseFromJson(doc);
 
-    // 1. まず #autosr（自動更新エリア）からツイートを取得（最新の投稿）
-    const autosrContainer = doc.getElementById('autosr');
-    if (autosrContainer) {
-      const wrappers = autosrContainer.querySelectorAll('[class*="Tweet_TweetContainer__"]');
-      wrappers.forEach(el => {
-        const t = parseTweetElement(el);
-        if (t && !idSet.has(t.id)) {
-          autoRefreshTweets.push({ ...t, isBest: false });
-          idSet.add(t.id);
-        }
-      });
+    if (jsonResult && jsonResult.timeline.length > 0) {
+      // #autosr の最新ツイートをDOMから取得（JSONには含まれない）
+      const autosrTweets = parseAutosrFromDom(doc);
+
+      // autosr のツイートをタイムラインの先頭に追加（重複排除）
+      const timelineIds = new Set(jsonResult.timeline.map(t => t.id));
+      const bestId = jsonResult.best?.id;
+      const uniqueAutosr = autosrTweets.filter(t => !timelineIds.has(t.id) && t.id !== bestId);
+      const timeline = [...uniqueAutosr, ...jsonResult.timeline];
+
+      console.log('[fetchRealtimeTweets] JSON+autosr: best:', jsonResult.best?.author, 'autosr:', uniqueAutosr.length, 'timeline:', timeline.length);
+      return { best: jsonResult.best, timeline };
     }
 
-    // 2. #bt（ベストポスト）を取得
-    const btContainer = doc.getElementById('bt');
-    if (btContainer) {
-      const bestWrapper = btContainer.querySelector('[class*="Tweet_TweetContainer__"]');
-      if (bestWrapper) {
-        const t = parseTweetElement(bestWrapper);
-        if (t && !idSet.has(t.id)) {
-          bestTweet = { ...t, isBest: true };
-          idSet.add(t.id);
-        }
-      }
-    }
-
-    // 3. #sr（タイムライン）からツイートを取得
-    const srContainer = doc.getElementById('sr');
-    if (srContainer) {
-      const wrappers = srContainer.querySelectorAll('[class*="Tweet_TweetContainer__"]');
-      wrappers.forEach(el => {
-        const t = parseTweetElement(el);
-        if (t && !idSet.has(t.id)) {
-          timelineTweets.push({ ...t, isBest: false });
-          idSet.add(t.id);
-        }
-      });
-    }
-
-    // 本家と同じ順序：自動更新ツイート → ベストポスト → タイムライン
-    // ただし、ベストポストは別途返すので、タイムラインに自動更新ツイートを先頭に追加
-    const combinedTimeline = [...autoRefreshTweets, ...timelineTweets];
-
-    console.log('[fetchRealtimeTweets] Results - autosr:', autoRefreshTweets.length, 'sr:', timelineTweets.length, 'total:', combinedTimeline.length);
-
-    return { best: bestTweet, timeline: combinedTimeline };
+    // === 方式2: DOM パース（フォールバック） ===
+    console.log('[fetchRealtimeTweets] JSON not found, falling back to DOM');
+    return parseDomFallback(doc);
 
   } catch (error) {
     console.error('[Service] Fetch tweets failed:', error);
@@ -186,9 +315,7 @@ export const fetchRealtimeTweets = async (keyword: string, start: number = 1): P
   }
 };
 
-// JSON APIを使用したページネーション（もっと見る機能用）
-// oldestTweetId: 現在表示されているリストの最後（最古）のポストのID
-// pageIndex: ページ番号（0から始まる）
+// ========== ページネーション（もっと見る機能用） ==========
 export const fetchMoreTweets = async (keyword: string, oldestTweetId: string, pageIndex: number = 0): Promise<Tweet[]> => {
   if (!keyword || !oldestTweetId) return [];
 
@@ -200,57 +327,53 @@ export const fetchMoreTweets = async (keyword: string, oldestTweetId: string, pa
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
     const json = await response.json();
-    const entries = json?.data?.timeline?.entry || [];
+    const entries: JsonEntry[] = json?.data?.timeline?.entry || [];
 
     console.log('[fetchMoreTweets] Received entries:', entries.length);
-
-    // JSON APIのレスポンスをTweet型に変換
-    const tweets: Tweet[] = entries.map((entry: {
-      id: string;
-      displayText?: string;
-      displayTextBody?: string;
-      name?: string;
-      screenName?: string;
-      createdAt?: number;
-      profileImage?: string;
-      url?: string;
-      likesCount?: number;
-      rtCount?: number;
-      media?: Array<{ thumbnailUrl?: string }>;
-      replyScreenName?: string;
-    }) => {
-      // 相対時間を計算
-      const createdAtTimestamp = entry.createdAt ? entry.createdAt * 1000 : Date.now();
-      const now = Date.now();
-      const diffSec = Math.floor((now - createdAtTimestamp) / 1000);
-      let timestamp = '';
-      if (diffSec < 60) timestamp = `${diffSec}秒前`;
-      else if (diffSec < 3600) timestamp = `${Math.floor(diffSec / 60)}分前`;
-      else if (diffSec < 86400) timestamp = `${Math.floor(diffSec / 3600)}時間前`;
-      else timestamp = `${Math.floor(diffSec / 86400)}日前`;
-
-      return {
-        id: entry.id,
-        text: entry.displayTextBody || entry.displayText || '',
-        url: entry.url || '',
-        timestamp,
-        createdAt: createdAtTimestamp,
-        author: entry.name || 'Unknown',
-        handle: entry.screenName ? `@${entry.screenName}` : '',
-        iconUrl: entry.profileImage || '',
-        mediaUrl: entry.media && entry.media.length > 0 ? entry.media[0].thumbnailUrl : undefined,
-        retweetCount: entry.rtCount ? String(entry.rtCount) : undefined,
-        likeCount: entry.likesCount ? String(entry.likesCount) : undefined,
-        isBest: false,
-        replyTo: entry.replyScreenName ? `@${entry.replyScreenName}` : undefined,
-      };
-    });
-
-    return tweets;
+    return entries.map(entry => mapEntryToTweet(entry));
 
   } catch (error) {
     console.error('[Service] Fetch more tweets failed:', error);
     return [];
+  }
+};
+
+// ========== ポスト数グラフ（transition API） ==========
+const GRAPH_PARAMS: Record<GraphPeriod, { span: number; interval: number }> = {
+  '6h':  { span: 21600,   interval: 900 },
+  '24h': { span: 86400,   interval: 3600 },
+  '7d':  { span: 604800,  interval: 21600 },
+  '30d': { span: 2592000, interval: 86400 },
+};
+
+export const fetchTransitionGraph = async (keyword: string, period: GraphPeriod = '6h'): Promise<TransitionResult> => {
+  const empty: TransitionResult = { totalCount: 0, entries: [], positive: 0, negative: 0 };
+  if (!keyword) return empty;
+
+  try {
+    const { span, interval } = GRAPH_PARAMS[period];
+    const targetUrl = `https://search.yahoo.co.jp/realtime/api/v1/transition?p=${encodeURIComponent(keyword)}&interval=${interval}&span=${span}&samplingRate=100&rkf=3`;
+    const response = await fetch(targetUrl);
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+    const json = await response.json();
+    const head = json?.tweetTransition?.head;
+    const entries = json?.tweetTransition?.entry || [];
+    const sentiment = json?.sentimentPieChart;
+
+    return {
+      totalCount: head?.totalResultsAvailable || 0,
+      entries: entries.map((e: { from: number; to: number; count: number }) => ({
+        from: e.from,
+        to: e.to,
+        count: e.count,
+      })),
+      positive: sentiment?.positive || 0,
+      negative: sentiment?.negative || 0,
+    };
+  } catch (error) {
+    console.error('[Service] Fetch transition graph failed:', error);
+    return empty;
   }
 };
 

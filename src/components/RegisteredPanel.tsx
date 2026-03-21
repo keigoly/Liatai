@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { RegisteredItem, FolderItem } from '../types';
 import type { TranslationKey } from '../i18n/translations';
+import { SnsShare } from './SnsShare';
 
 interface Props {
   t: (key: TranslationKey) => string;
@@ -110,7 +111,18 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
     } catch { return DUMMY_FOLDERS; }
   });
 
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedFolderId, _setSelectedFolderId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('sidestream_selected_folder_id') || null;
+    } catch { return null; }
+  });
+  const setSelectedFolderId = (value: string | null | ((prev: string | null) => string | null)) => {
+    _setSelectedFolderId(prev => {
+      const next = typeof value === 'function' ? value(prev) : value;
+      try { if (next) localStorage.setItem('sidestream_selected_folder_id', next); else localStorage.removeItem('sidestream_selected_folder_id'); } catch { /* ignore */ }
+      return next;
+    });
+  };
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const [modalData, setModalData] = useState<FolderItem | null>(null);
@@ -673,6 +685,7 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
         )}
 
       </div>
+      <SnsShare compact />
     </div>
   );
 };

@@ -16,6 +16,7 @@ import { Header } from './components/Header';
 import { SettingsPanel } from './components/SettingsPanel';
 import { RegisteredPanel } from './components/RegisteredPanel';
 import { TweetCard } from './components/search/TweetCard';
+import { TweetGraph } from './components/search/TweetGraph';
 import { TrendList } from './components/home/TrendList';
 
 function App() {
@@ -116,8 +117,19 @@ function App() {
 
   // ========== Effects ==========
   useEffect(() => {
-    loadTrends();
-    if (searchKeyword) tweetsState.loadTweets(false, searchKeyword);
+    // URLパラメータから検索キーワードを復元（新しいウィンドウで開いた場合）
+    const params = new URLSearchParams(window.location.search);
+    const initialQuery = params.get('q');
+    if (initialQuery) {
+      setInputValue(initialQuery);
+      setSearchKeyword(initialQuery);
+      setCurrentView('search');
+      searchHistoryState.addToHistory(initialQuery);
+      tweetsState.loadTweets(false, initialQuery);
+    } else {
+      loadTrends();
+      if (searchKeyword) tweetsState.loadTweets(false, searchKeyword);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -205,6 +217,8 @@ function App() {
                   setFontSize={settings.setFontSize}
                   ngSettings={settings.ngSettings}
                   setNgSettings={settings.setNgSettings}
+                  graphDefaultPeriod={settings.graphDefaultPeriod}
+                  setGraphDefaultPeriod={settings.setGraphDefaultPeriod}
                 />
               )}
             </div>
@@ -212,6 +226,9 @@ function App() {
 
           {currentView === 'search' && (
             <div key="search-view" className="animate-in fade-in duration-300">
+              {/* ポスト数グラフ（開閉式） */}
+              {searchKeyword && <TweetGraph keyword={searchKeyword} defaultPeriod={settings.graphDefaultPeriod} />}
+
               {tweetsState.isTweetLoading && (
                 <div className="flex justify-center py-10"><div className="animate-spin h-6 w-6 border-4 border-[var(--theme-color)] rounded-full border-t-transparent"></div></div>
               )}
