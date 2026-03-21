@@ -4,9 +4,11 @@
 
 ## プロジェクト概要
 
-**Sidestream (リアタイ！)** は、ChromeのサイドパネルにリアルタイムのTwitter/Xトレンドとツイート検索結果を表示するChrome拡張機能（Manifest V3）です。Yahoo!リアルタイム検索（`search.yahoo.co.jp/realtime`）のHTMLを取得し、DOM要素をパースしてデータを取得しています（公式APIは使用していません）。
+**Sidestream (リアタイ！)** は、ChromeのサイドパネルにリアルタイムのTwitter/Xトレンドとツイート検索結果を表示するChrome拡張機能（Manifest V3）です。Yahoo!リアルタイム検索（`search.yahoo.co.jp/realtime`）からデータを取得しています。
 
-日本語メインのアプリで、英語のi18n対応あり（`src/i18n/translations.ts`）。
+- **データ取得**: `__NEXT_DATA__` JSON（`pageProps.pageData`）を優先し、フォールバックとしてDOM パース（`#bt`, `#autosr`, `#sr`）
+- **API連携**: Yahoo の `/realtime/api/v1/pagination`（もっと見る）、`/realtime/api/v1/transition`（ポスト数グラフ）
+- **i18n**: アプリ内は `src/i18n/translations.ts`（ja/en）、Chrome Web Store は `public/_locales/`（ja/en）
 
 ## コマンド
 
@@ -30,9 +32,14 @@ Vite設定（`vite.config.ts`）はマルチエントリーのrollupを使用：
 
 ### データフロー
 
-`realtimeService.ts` がYahoo!リアルタイム検索のHTMLを取得し、DOMParserでパース、CSSクラスセレクター（例: `Tweet_TweetContainer__`、`TrendItem_BuzzWord`）でツイート・トレンドを抽出します。データの流れ：
+`realtimeService.ts` がYahoo!リアルタイム検索からデータを取得。優先順位：
 
-1. **Service**（`src/services/realtimeService.ts`）— fetch + DOMパース、型付きの `Tweet[]` / `TrendItem[]` を返す
+1. **`__NEXT_DATA__` JSON**（`pageProps.pageData.timeline.entry[]` + `pageProps.pageData.bestTweet`）
+2. **DOM `#autosr`** から最新の自動更新ツイートを追加取得
+3. **DOM フォールバック**（`#bt` + `#autosr` + `#sr`）— JSON が無い場合
+
+データの流れ：
+1. **Service**（`src/services/realtimeService.ts`）— fetch + JSON/DOMパース、型付きの `Tweet[]` / `TrendItem[]` / `TransitionResult` を返す
 2. **Hooks**（`src/hooks/`）— 状態管理、自動更新インターバル、フィルタリング（NG/ブロック）、localStorage永続化
 3. **Components**（`src/components/`）— 表示レイヤー
 
@@ -46,8 +53,8 @@ Vite設定（`vite.config.ts`）はマルチエントリーのrollupを使用：
 
 | フック | 役割 |
 |--------|------|
-| `useSettings` | ユーザー設定全般（テーマ、更新間隔、NG/ブロックリスト） |
-| `useTweets` | ツイート取得、バックグラウンド更新、保留ツイートキュー、NGフィルタリング |
+| `useSettings` | ユーザー設定全般（テーマ、更新間隔、NG/ブロックリスト、グラフ期間） |
+| `useTweets` | ツイート取得、バックグラウンド更新、保留ツイートキュー、NGフィルタリング、もっと見る |
 | `useSearchHistory` | localStorageを使った検索履歴 |
 | `useTheme` | 設定からCSSカスタムプロパティを生成 |
 | `useLanguage` | 多言語対応（ja/en） |
@@ -56,11 +63,15 @@ Vite設定（`vite.config.ts`）はマルチエントリーのrollupを使用：
 
 `App.tsx` が `currentView` で2つのビューを管理：
 - **ホーム**（`'home'`）：3つのサブタブ — トレンド、登録ワード/フォルダ、設定
-- **検索**（`'search'`）：ツイート結果、タブ切り替え（すべて / ポストのみ / メディア）
+- **検索**（`'search'`）：ポスト数グラフ（開閉式）、ツイート結果（タブ切り替え：すべて / ポストのみ / メディア）、もっと見る
 
-### スクレイピングパターン
+### 主要コンポーネント
 
-ツイートは3つのDOMセクションからパース：`#autosr`（自動更新エリア、最新）、`#bt`（ベストポスト）、`#sr`（タイムライン）。YahooのJSON Pagination APIを使った `fetchMoreTweets` 関数は実装済みだが、UIにはまだ接続されていない（App.tsxでコメントアウト中）。
+| コンポーネント | 役割 |
+|----------------|------|
+| `TweetGraph` | ポスト数グラフ（transition API、期間切替、感情分析円グラフ） |
+| `TweetCard` | ツイート個別表示（メディア、リプライ、エンゲージメント） |
+| `SnsShare` | SNSシェアボタン群（X, LINE, Facebook, Threads, Reddit, CWS） |
 
 ## コーディング規約
 

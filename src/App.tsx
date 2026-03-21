@@ -248,18 +248,12 @@ function App() {
               {!tweetsState.isTweetLoading && filteredTweets.length === 0 && (
                 <div className="text-center py-20 text-gray-500 text-sm">ツイートが見つかりませんでした。</div>
               )}
-              {/* 
-                =====================================
-                「もっと見る」ボタン - 将来の実装のため保留
-                JSON API (/realtime/api/v1/pagination) を使用した実装が必要
-                useTweets.ts の loadMoreTweets と realtimeService.ts の fetchMoreTweets を使用
-                =====================================
               {!tweetsState.isTweetLoading && filteredTweets.length > 0 && tweetsState.hasMoreTweets && (
                 <div className="flex justify-center py-6">
                   <button
                     onClick={tweetsState.loadMoreTweets}
                     disabled={tweetsState.isLoadingMore}
-                    className="px-16 py-3 border border-[rgb(47,51,54)] rounded-sm text-[rgb(113,118,123)] text-[15px] font-medium hover:bg-[rgba(255,255,255,0.03)] transition-colors disabled:opacity-50"
+                    className="px-16 py-3 border border-[var(--border-color)] rounded-sm text-[#8b98a5] text-[15px] font-medium hover:bg-[var(--card-bg-color)] transition-colors disabled:opacity-50"
                   >
                     {tweetsState.isLoadingMore ? (
                       <div className="flex items-center justify-center gap-2">
@@ -275,7 +269,6 @@ function App() {
               {!tweetsState.hasMoreTweets && filteredTweets.length > 0 && (
                 <div className="text-center py-6 text-gray-500 text-xs">これ以上のポストはありません</div>
               )}
-              */}
             </div>
           )}
         </main>

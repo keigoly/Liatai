@@ -321,15 +321,15 @@ export const fetchMoreTweets = async (keyword: string, oldestTweetId: string, pa
 
   try {
     const targetUrl = `https://search.yahoo.co.jp/realtime/api/v1/pagination?p=${encodeURIComponent(keyword)}&rkf=3&b=${pageIndex}&oldestTweetId=${oldestTweetId}&start=`;
-    console.log('[fetchMoreTweets] URL:', targetUrl);
 
     const response = await fetch(targetUrl);
     if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
 
     const json = await response.json();
-    const entries: JsonEntry[] = json?.data?.timeline?.entry || [];
+    const entries: JsonEntry[] = json?.timeline?.entry || [];
+    const total = json?.timeline?.head?.totalResultsAvailable || 0;
 
-    console.log('[fetchMoreTweets] Received entries:', entries.length);
+    console.log('[fetchMoreTweets] entries:', entries.length, 'total:', total);
     return entries.map(entry => mapEntryToTweet(entry));
 
   } catch (error) {

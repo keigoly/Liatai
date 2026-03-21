@@ -169,41 +169,32 @@ export function useTweets({
         setIsLoadingMore(true);
 
         try {
-            // 現在表示されているリストの最後（最古）のポストのIDを取得
-            const oldestTweet = tweets[tweets.length - 1];
+            // ベストポストを除いた通常ツイートから最古のIDを取得
+            const normalTweets = tweets.filter(t => !t.isBest);
+            const oldestTweet = normalTweets[normalTweets.length - 1];
             const oldestTweetId = oldestTweet?.id || '';
 
             if (!oldestTweetId) {
-                console.log('[loadMoreTweets] No oldest tweet ID found');
                 setHasMoreTweets(false);
                 setIsLoadingMore(false);
                 return;
             }
 
-            console.log('[loadMoreTweets] Loading more with oldestTweetId:', oldestTweetId, 'pageIndex:', currentPage.current);
-
-            // JSON APIを使用して追加のポストを取得
             const { fetchMoreTweets } = await import('../services/realtimeService');
-            const newTweets = await fetchMoreTweets(searchKeyword, oldestTweetId, currentPage.current);
-
-            console.log('[loadMoreTweets] Received:', newTweets.length, 'items');
+            const newTweets = await fetchMoreTweets(searchKeyword, oldestTweetId, 0);
 
             if (newTweets.length === 0) {
-                console.log('[loadMoreTweets] No more tweets, setting hasMoreTweets to false');
                 setHasMoreTweets(false);
             } else {
                 setTweets(prev => {
                     const existingIds = new Set(prev.map(t => t.id));
                     const uniqueNew = newTweets.filter(t => !existingIds.has(t.id));
-                    console.log('[loadMoreTweets] Unique new tweets:', uniqueNew.length);
                     if (uniqueNew.length === 0) {
-                        // 重複ばかりの場合、次のページを試みる
-                        currentPage.current += 1;
+                        setHasMoreTweets(false);
                         return prev;
                     }
                     return [...prev, ...uniqueNew];
                 });
-                currentPage.current += 1;
             }
         } catch (err) {
             console.error('Failed to load more tweets:', err);

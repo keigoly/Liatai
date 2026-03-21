@@ -437,6 +437,40 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
         </SettingsAccordion>
 
+        {/* 最新のアップデート情報（GitHub連動） */}
+        <SettingsAccordion
+          title={t('latestUpdate')}
+          currentValueLabel={releaseInfo ? releaseInfo.tag_name : '読み込み中...'}
+          currentLabelText={t('currentLabel')}
+          isOpen={isUpdateInfoOpen}
+          onToggle={() => setIsUpdateInfoOpen(!isUpdateInfoOpen)}
+          isNew={isNewRelease}
+        >
+          {releaseInfo ? (
+            <div className="p-4 bg-[var(--card-bg-color)]">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-bold text-white">{releaseInfo.name || releaseInfo.tag_name}</span>
+                <span className="text-xs text-gray-500">{new Date(releaseInfo.published_at).toLocaleDateString()}</span>
+              </div>
+              <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[200px] overflow-y-auto mb-4 p-2 bg-[var(--bg-color)] rounded border border-[var(--border-color)]">
+                {releaseInfo.body || t('noUpdateDetails')}
+              </div>
+              <a
+                href={releaseInfo.html_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center py-2 text-sm font-bold text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors border border-gray-600"
+              >
+                {t('viewOnGitHub')}
+              </a>
+            </div>
+          ) : (
+            <div className="p-4 flex justify-center">
+              <div className="animate-spin h-5 w-5 border-2 border-[var(--theme-color)] rounded-full border-t-transparent" />
+            </div>
+          )}
+        </SettingsAccordion>
+
         <SettingsAccordion
           title={t('trendAutoRefreshInterval')}
           currentValueLabel={trendIntervalOptions.find(o => o.value === trendRefreshInterval)?.label || `${trendRefreshInterval / 60000}${language === 'ja' ? '分' : ' min'}`}
@@ -498,38 +532,10 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <p className="text-xs text-gray-500 mt-3 px-1">検索時にポスト数グラフに表示するデフォルトの期間を選択します。</p>
         </SettingsAccordion>
 
-        {/* ★追加: 最新のアップデート情報（GitHub連動） */}
-        {releaseInfo && (
-          <SettingsAccordion
-            title={t('latestUpdate')}
-            currentValueLabel={releaseInfo.tag_name}
-            currentLabelText={t('currentLabel')}
-            isOpen={isUpdateInfoOpen}
-            onToggle={() => setIsUpdateInfoOpen(!isUpdateInfoOpen)}
-            isNew={isNewRelease}
-          >
-            <div className="p-4 bg-[var(--card-bg-color)]">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold text-white">{releaseInfo.name || releaseInfo.tag_name}</span>
-                <span className="text-xs text-gray-500">{new Date(releaseInfo.published_at).toLocaleDateString()}</span>
-              </div>
-              <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[200px] overflow-y-auto mb-4 p-2 bg-[var(--bg-color)] rounded border border-[var(--border-color)]">
-                {releaseInfo.body || t('noUpdateDetails')}
-              </div>
-              <a
-                href={releaseInfo.html_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full text-center py-2 text-sm font-bold text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors border border-gray-600"
-              >
-                {t('viewOnGitHub')}
-              </a>
-            </div>
-          </SettingsAccordion>
-        )}
-
         <SettingsAccordion
           title={t('ngSettings')}
+          currentValueLabel={`${ngSettings.comments.length + ngSettings.userIds.length}件`}
+          currentLabelText={t('currentLabel')}
           isOpen={isNgSettingOpen}
           onToggle={() => setIsNgSettingOpen(!isNgSettingOpen)}
         >

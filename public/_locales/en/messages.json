@@ -1,0 +1,11 @@
+{
+  "appName": {
+    "message": "Riatai!"
+  },
+  "appDescription": {
+    "message": "Your live commentary companion. A Chrome extension that displays real-time X/Twitter search results in the side panel."
+  },
+  "actionTitle": {
+    "message": "Open Riatai!"
+  }
+}
