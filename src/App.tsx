@@ -118,6 +118,7 @@ function App() {
   useEffect(() => {
     loadTrends();
     if (searchKeyword) tweetsState.loadTweets(false, searchKeyword);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -134,6 +135,7 @@ function App() {
     return () => {
       if (intervalRef.current) window.clearInterval(intervalRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.autoRefresh, searchKeyword, currentView, homeTab, settings.trendRefreshInterval, settings.searchRefreshInterval, isScrolled, tweetsState.tweets]);
 
   // ========== フィルタリング ==========

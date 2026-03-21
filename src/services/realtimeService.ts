@@ -9,13 +9,13 @@ export type { Tweet, TrendItem, TrendResult, FetchTweetsResult, TrendState };
 
 const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
   try {
-    let bodyContainer = el.querySelector('[class*="Tweet_bodyContainer__"]');
+    const bodyContainer = el.querySelector('[class*="Tweet_bodyContainer__"]');
     let bodyEl = bodyContainer?.querySelector('[class*="Tweet_body__"]');
     if (!bodyEl) bodyEl = el.querySelector('[class*="Tweet_body__"]');
     if (!bodyEl) return null;
 
     const iconImg = el.querySelector('[class*="Tweet_icon__"] img') as HTMLImageElement;
-    let iconUrl = iconImg ? iconImg.src : "";
+    const iconUrl = iconImg ? iconImg.src : "";
 
     // ★修正: 返信先情報の分離処理
     let replyTo: string | undefined = undefined;
@@ -43,10 +43,10 @@ const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
     const nameEl = el.querySelector('[class*="Tweet_authorName__"]');
     const idEl = el.querySelector('[class*="Tweet_authorID__"]');
     const author = nameEl?.textContent?.trim() || "Unknown";
-    let handle = idEl?.textContent?.trim() || "";
+    const handle = idEl?.textContent?.trim() || "";
 
     const timeEl = el.querySelector('[class*="Tweet_time__"]');
-    let timestamp = timeEl?.textContent?.trim() || "";
+    const timestamp = timeEl?.textContent?.trim() || "";
 
     // 返信の場合でも実際の時間を表示（Nowに上書きしない）
 
@@ -107,7 +107,7 @@ const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
       text, url, timestamp, createdAt,
       author, handle, iconUrl, mediaUrl, retweetCount, likeCount, replyTo
     };
-  } catch (e) {
+  } catch {
     return null;
   }
 };
@@ -326,7 +326,7 @@ export const fetchRealtimeTrends = async (): Promise<TrendResult> => {
     }
 
     return { updateTime: updateTime, items: trends.sort((a, b) => a.rank - b.rank) };
-  } catch (error) {
+  } catch {
     return { updateTime: "", items: [] };
   }
 };

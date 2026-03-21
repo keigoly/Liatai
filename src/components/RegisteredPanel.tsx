@@ -39,7 +39,7 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
     try {
       const saved = localStorage.getItem('sidestream_registered_words');
       const parsed = saved ? JSON.parse(saved) : [];
-      return parsed.map((w: any) => ({ ...w, isPinned: w.isPinned || false }));
+      return parsed.map((w: RegisteredItem) => ({ ...w, isPinned: w.isPinned || false }));
     } catch { return []; }
   });
   const [wordInput, setWordInput] = useState('');
@@ -106,7 +106,7 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
       const saved = localStorage.getItem('sidestream_folders');
       const parsed = saved ? JSON.parse(saved) : null;
       if (!parsed || parsed.length === 0) return DUMMY_FOLDERS;
-      return parsed.map((f: any) => ({ ...f, items: f.items || [], isPinned: f.isPinned || false }));
+      return parsed.map((f: FolderItem) => ({ ...f, items: f.items || [], isPinned: f.isPinned || false }));
     } catch { return DUMMY_FOLDERS; }
   });
 

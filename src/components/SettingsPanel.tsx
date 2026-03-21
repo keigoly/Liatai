@@ -88,6 +88,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   // ★追加: アップデート情報用のState
   const [isUpdateInfoOpen, setIsUpdateInfoOpen] = useState(false);
   const [releaseInfo, setReleaseInfo] = useState<ReleaseData | null>(null);
+  const [isNewRelease, setIsNewRelease] = useState(false);
 
   const [parent] = useAutoAnimate({ duration: 300, easing: 'ease-in-out' });
 
@@ -214,6 +215,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         if (res.ok) {
           const data = await res.json();
           setReleaseInfo(data);
+          if (data.published_at) {
+            setIsNewRelease((Date.now() - new Date(data.published_at).getTime()) < 7 * 24 * 60 * 60 * 1000);
+          }
         }
       } catch (e) {
         console.error('Failed to fetch release info', e);
@@ -476,7 +480,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             currentLabelText={t('currentLabel')}
             isOpen={isUpdateInfoOpen}
             onToggle={() => setIsUpdateInfoOpen(!isUpdateInfoOpen)}
-            isNew={releaseInfo.published_at ? (Date.now() - new Date(releaseInfo.published_at).getTime()) < 7 * 24 * 60 * 60 * 1000 : false}
+            isNew={isNewRelease}
           >
             <div className="p-4 bg-[var(--card-bg-color)]">
               <div className="flex items-center justify-between mb-3">
