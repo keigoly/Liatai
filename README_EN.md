@@ -1,9 +1,26 @@
 # Liatai (Real-time!)
 
-[![Version](https://img.shields.io/badge/version-1.1.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [日本語](README.md) | English
+
+---
+
+## 🆕 v1.2.0 Updates
+
+### New Features
+* **📊 Post Count Graph**: Visualize the trend of post counts for your search keyword. Supports 6-hour, 24-hour, 7-day, and 30-day period switching. Also displays sentiment analysis (positive/negative ratio).
+* **📄 Load More**: You can now scroll back through older posts. Click the "Load More" button at the bottom to fetch additional posts.
+* **🔗 SNS Share**: Share buttons added to Trends, Registered Words, and Settings screens. Share via X, LINE, Facebook, Threads, Reddit, and Chrome Web Store.
+* **🌍 Chrome Web Store Localization**: Extension name and description are displayed in Japanese or English based on your browser's language settings.
+
+### Improvements
+* **🎯 Accurate Data from Yahoo**: Improved to accurately fetch Best Post and Timeline from `__NEXT_DATA__` JSON.
+* **🪟 Improved New Window**: Now carries over your current search state when opening a new window. Window size automatically adjusts to your screen height.
+* **📁 Folder State Persistence**: Folder open/close state is now preserved across screen transitions.
+* **⭐ Best Post Refresh**: Fixed to reliably re-display the Best Post at the top every 5 minutes.
+* **⚙️ Settings UI Improvements**: Moved latest update info position, added NG filter item count display, added default graph period setting.
 
 ---
 
@@ -11,19 +28,6 @@
 
 ### Fixes
 * **🔧 Chrome Web Store Policy Compliance**: Removed unused `storage` permission to fully comply with store policies.
-
----
-
-## 🆕 v1.1.0 Updates
-
-### New Features
-* **🌐 Multi-language Support**: Now supports Japanese and English. You can switch languages from the settings panel.
-* **🪟 Popup Window**: You can now switch from the side panel to an independent popup window. Place it anywhere on your screen so it doesn't disturb your work.
-* **👤 Developer's Official Site**: Added a link to the developer's official website in the settings panel.
-
-### Improvements
-* Improved logic for saving and loading settings.
-* Settings data is automatically migrated when upgrading from v1.0.x.
 
 ---
 
@@ -55,11 +59,14 @@ Block unwanted information before it enters your view. Create a comfortable time
 * **NG Users**: Hide posts from specific user IDs (@...).
 * **Regex Support**: Advanced filtering using regular expressions is supported for power users.
 
-### 4. 🌐 Multi-language Support (NEW!)
-Switch between Japanese and English from the settings screen. The UI will optionally be displayed in your preferred language.
+### 4. 📊 Post Count Graph
+View the post count trend for your search keyword. Switch between 6-hour, 24-hour, 7-day, and 30-day periods. Sentiment analysis (positive/negative) is also displayed.
 
-### 5. 🪟 Popup Window (NEW!)
-Switch from the side panel to a popup window. Display it in an independent window to freely customize your workspace.
+### 5. 🌐 Multi-language Support
+Switch between Japanese and English from the settings screen. Chrome Web Store also auto-displays based on your browser language.
+
+### 6. 🪟 Popup Window
+Switch from the side panel to a popup window. Your current search state is carried over to the independent window.
 
 ---
 
@@ -90,6 +97,8 @@ We always welcome bug reports and feature requests via the link in the settings 
 
 ## ◇ Links
 
+* [Chrome Web Store](https://chromewebstore.google.com/detail/indeiidgljnaokghbdogclapjjngmnkb)
+* [Developer's Extensions](https://keigoly.jp/apps)
 * [Developer's Official Site](https://keigoly.jp/)
 * [GitHub Repository](https://github.com/keigoly/Liatai)
 * [Bug Report Form](https://docs.google.com/forms/d/e/1FAIpQLSeUlF5s7vgcG0RrISNrAwLKhMQTvJpndH8e31Z_WHF081McEA/viewform)
