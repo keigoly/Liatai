@@ -1,10 +1,10 @@
 // src/services/realtimeService.ts
 
-import type { Tweet, TrendItem, TrendResult, FetchTweetsResult, TrendState } from '../types/index';
+import type { Tweet, TrendItem, TrendResult, FetchTweetsResult, TrendState, TransitionResult, GraphPeriod } from '../types/index';
 import { generateHashId, parseRelativeTime } from '../utils/helpers';
 
 // Re-export types for backward compatibility
-export type { Tweet, TrendItem, TrendResult, FetchTweetsResult, TrendState };
+export type { Tweet, TrendItem, TrendResult, FetchTweetsResult, TrendState, TransitionResult, GraphPeriod };
 
 
 const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
@@ -216,7 +216,8 @@ export const fetchMoreTweets = async (keyword: string, oldestTweetId: string, pa
       url?: string;
       likesCount?: number;
       rtCount?: number;
-      media?: Array<{ thumbnailUrl?: string }>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      media?: Array<Record<string, any>>;
       replyScreenName?: string;
     }) => {
       // 相対時間を計算
@@ -238,7 +239,7 @@ export const fetchMoreTweets = async (keyword: string, oldestTweetId: string, pa
         author: entry.name || 'Unknown',
         handle: entry.screenName ? `@${entry.screenName}` : '',
         iconUrl: entry.profileImage || '',
-        mediaUrl: entry.media && entry.media.length > 0 ? entry.media[0].thumbnailUrl : undefined,
+        mediaUrl: entry.media && entry.media.length > 0 ? (entry.media[0].metaImageUrl || entry.media[0].thumbnailUrl || entry.media[0].url || entry.media[0].originalUrl) : undefined,
         retweetCount: entry.rtCount ? String(entry.rtCount) : undefined,
         likeCount: entry.likesCount ? String(entry.likesCount) : undefined,
         isBest: false,
@@ -251,6 +252,43 @@ export const fetchMoreTweets = async (keyword: string, oldestTweetId: string, pa
   } catch (error) {
     console.error('[Service] Fetch more tweets failed:', error);
     return [];
+  }
+};
+
+// ========== ポスト数グラフ（transition API） ==========
+const PERIOD_INTERVAL_MAP: Record<GraphPeriod, string> = {
+  '6h': '1m', '24h': '5m', '7d': '1h', '30d': '1d',
+};
+
+export const fetchTransitionGraph = async (keyword: string, period: GraphPeriod): Promise<TransitionResult> => {
+  const empty: TransitionResult = { entries: [], totalCount: 0, positive: 0, negative: 0 };
+  if (!keyword) return empty;
+
+  try {
+    const interval = PERIOD_INTERVAL_MAP[period];
+    const url = `https://search.yahoo.co.jp/realtime/api/v1/transition?p=${encodeURIComponent(keyword)}&rkf=3&interval=${interval}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+    const json = await res.json();
+    const data = json?.data;
+    if (!data) return empty;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const entries = (data.entries || []).map((e: any) => ({
+      from: e.from ?? 0,
+      to: e.to ?? 0,
+      count: e.count ?? 0,
+    }));
+
+    return {
+      entries,
+      totalCount: data.totalCount ?? 0,
+      positive: data.positive ?? 0,
+      negative: data.negative ?? 0,
+    };
+  } catch (error) {
+    console.error('[Service] Fetch transition graph failed:', error);
+    return empty;
   }
 };
 

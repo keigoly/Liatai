@@ -75,6 +75,22 @@ export interface FetchTweetsResult {
   timeline: Tweet[];
 }
 
+// ========== グラフ関連 ==========
+export type GraphPeriod = '6h' | '24h' | '7d' | '30d';
+
+export interface TransitionEntry {
+  from: number;
+  to: number;
+  count: number;
+}
+
+export interface TransitionResult {
+  entries: TransitionEntry[];
+  totalCount: number;
+  positive: number;
+  negative: number;
+}
+
 // ========== ビュー関連 ==========
 export type TabType = 'all' | 'text' | 'media';
 export type ViewType = 'home' | 'search';

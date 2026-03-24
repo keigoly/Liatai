@@ -50,6 +50,7 @@ function App() {
   const tweetsState = useTweets({
     searchKeyword,
     isScrolled,
+    bestPostInterval: settings.bestPostInterval,
     scrollContainerRef,
     setIsScrolled,
   });
@@ -136,7 +137,7 @@ function App() {
       if (intervalRef.current) window.clearInterval(intervalRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.autoRefresh, searchKeyword, currentView, homeTab, settings.trendRefreshInterval, settings.searchRefreshInterval, isScrolled, tweetsState.tweets]);
+  }, [settings.autoRefresh, searchKeyword, currentView, homeTab, settings.trendRefreshInterval, settings.searchRefreshInterval, settings.bestPostInterval, isScrolled]);
 
   // ========== フィルタリング ==========
   const filteredTweets = tweetsState.filterTweets(tweetsState.tweets, activeTab, settings.ngSettings);
@@ -149,6 +150,7 @@ function App() {
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         @keyframes rank-in { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); } }
         .animate-rank-in { opacity: 0; animation: rank-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        @keyframes tweet-list-in { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
       `}</style>
 
       {openMenuId && <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setOpenMenuId(null)}></div>}
@@ -203,6 +205,8 @@ function App() {
                   setBgMode={settings.setBgMode}
                   fontSize={settings.fontSize}
                   setFontSize={settings.setFontSize}
+                  bestPostInterval={settings.bestPostInterval}
+                  setBestPostInterval={settings.setBestPostInterval}
                   ngSettings={settings.ngSettings}
                   setNgSettings={settings.setNgSettings}
                 />
@@ -215,7 +219,7 @@ function App() {
               {tweetsState.isTweetLoading && (
                 <div className="flex justify-center py-10"><div className="animate-spin h-6 w-6 border-4 border-[var(--theme-color)] rounded-full border-t-transparent"></div></div>
               )}
-              <div className="flex flex-col" ref={tweetListRef}>
+              <div key={tweetsState.fullRefreshKey} className="flex flex-col" style={{ animation: 'tweet-list-in 0.5s ease-out' }} ref={tweetListRef}>
                 {filteredTweets.map((tweet) => (
                   <TweetCard
                     key={tweet.id}

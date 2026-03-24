@@ -24,6 +24,10 @@ export interface SettingsState {
     fontSize: FontSize;
     setFontSize: React.Dispatch<React.SetStateAction<FontSize>>;
 
+    // ベストポスト更新間隔
+    bestPostInterval: number;
+    setBestPostInterval: React.Dispatch<React.SetStateAction<number>>;
+
     // NG設定
     ngSettings: NgSettings;
     setNgSettings: (settings: NgSettings | ((prev: NgSettings) => NgSettings)) => void;
@@ -60,6 +64,11 @@ export function useSettings(): SettingsState {
         DEFAULTS.FONT_SIZE
     );
 
+    const [bestPostInterval, setBestPostInterval] = useLocalStorage<number>(
+        'sidestream-best-post-interval',
+        DEFAULTS.BEST_POST_INTERVAL
+    );
+
     const [ngSettings, setNgSettingsState] = useLocalStorage<NgSettings>(
         STORAGE_KEYS.NG_SETTINGS,
         DEFAULTS.NG_SETTINGS
@@ -85,6 +94,8 @@ export function useSettings(): SettingsState {
         setBgMode,
         fontSize,
         setFontSize,
+        bestPostInterval,
+        setBestPostInterval,
         ngSettings,
         setNgSettings,
     };

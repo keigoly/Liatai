@@ -1,9 +1,27 @@
 # Liatai (Real-time!)
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [日本語](README.md) | English
+
+---
+
+## 🆕 v1.2.2 Updates
+
+### Improvements
+* **🎨 Search Animation Improvements**: Improved the search results display animation for a smoother experience.
+* **🔄 Natural Best Post Flow**: Best posts now flow naturally into the list during background updates.
+* **🖼️ Media Display Fix**: Fixed an issue where some media were not displayed correctly.
+
+---
+
+## 🆕 v1.2.1 Updates
+
+### New Features
+* **⭐ Best Post Refresh Interval Setting**: You can now choose the best post refresh interval from 1 min / 5 min / 10 min / 30 min.
+* **🔄 Natural Best Post Display**: When the best post is updated, it is now naturally added to the list instead of reloading the entire list.
+* **📊 Graph Auto-Refresh**: The post count graph now supports auto-refresh.
 
 ---
 

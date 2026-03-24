@@ -84,6 +84,7 @@ export const DEFAULTS: {
     SEARCH_HISTORY: string[];
     MAX_TWEETS: number;
     MAX_HISTORY: number;
+    BEST_POST_INTERVAL: number;
 } = {
     LANGUAGE: 'ja',
     AUTO_REFRESH: true,
@@ -96,7 +97,11 @@ export const DEFAULTS: {
     SEARCH_HISTORY: [],
     MAX_TWEETS: 50,
     MAX_HISTORY: 20,
+    BEST_POST_INTERVAL: 5 * 60 * 1000,
 };
+
+// ========== ベストポスト更新間隔オプション（分単位） ==========
+export const BEST_POST_INTERVALS = [1, 5, 10, 30] as const;
 
 // ========== ランクカラー ==========
 export const RANK_COLORS = {

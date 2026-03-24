@@ -1,9 +1,27 @@
 # リアタイ！ (Liatai)
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](README_EN.md) | 日本語
+
+---
+
+## 🆕 v1.2.2 アップデート
+
+### 改善
+* **🎨 検索アニメーション改善**: 検索結果の表示アニメーションを改善し、よりスムーズな体験を実現しました。
+* **🔄 ベストポスト更新の自然な流入**: バックグラウンド更新時にベストポストが自然にリストに流入するようになりました。
+* **🖼️ メディア表示の修正**: 一部のメディアが正しく表示されない問題を修正しました。
+
+---
+
+## 🆕 v1.2.1 アップデート
+
+### 新機能
+* **⭐ ベストポスト更新間隔の設定**: ベストポストの更新間隔を1分/5分/10分/30分から選択できるようになりました。
+* **🔄 ベストポストの自然な表示**: ベストポストが更新された際、リスト全体がリロードされるのではなく、自然にリストに追加されるようになりました。
+* **📊 グラフ自動更新**: ポスト数グラフが自動更新に対応しました。
 
 ---
 

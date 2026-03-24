@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { ThemeColor, BgMode, FontSize, NgSettings, NgWord } from '../types';
-import { STORAGE_KEYS } from '../constants/index';
+import { STORAGE_KEYS, BEST_POST_INTERVALS } from '../constants/index';
 import type { Language, TranslationKey } from '../i18n/translations';
 
 const RegExpSwitch: React.FC<{ checked: boolean; onChange: (checked: boolean) => void }> = ({ checked, onChange }) => {
@@ -67,6 +67,8 @@ interface SettingsPanelProps {
   setBgMode: (mode: BgMode) => void;
   fontSize: FontSize;
   setFontSize: (size: FontSize) => void;
+  bestPostInterval: number;
+  setBestPostInterval: (val: number) => void;
   ngSettings: NgSettings;
   setNgSettings: (settings: NgSettings) => void;
 }
@@ -75,11 +77,13 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   language, setLanguage, t,
   trendRefreshInterval, setTrendRefreshInterval, searchRefreshInterval, setSearchRefreshInterval,
   themeColor, setThemeColor, bgMode, setBgMode, fontSize, setFontSize,
+  bestPostInterval, setBestPostInterval,
   ngSettings, setNgSettings
 }) => {
   const [isLanguageSettingOpen, setIsLanguageSettingOpen] = useState(false);
   const [isTrendSettingOpen, setIsTrendSettingOpen] = useState(false);
   const [isSearchSettingOpen, setIsSearchSettingOpen] = useState(false);
+  const [isBestPostSettingOpen, setIsBestPostSettingOpen] = useState(false);
   const [isNgSettingOpen, setIsNgSettingOpen] = useState(false);
   const [isDesignSettingOpen, setIsDesignSettingOpen] = useState(false);
   const [isStorageSettingOpen, setIsStorageSettingOpen] = useState(false);
@@ -470,6 +474,30 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             ))}
           </div>
           <p className="text-xs text-gray-500 mt-3 px-1">{t('autoRefreshNote')}</p>
+        </SettingsAccordion>
+
+        <SettingsAccordion
+          title={language === 'ja' ? 'ベストポスト更新間隔' : 'Best Post Refresh Interval'}
+          currentValueLabel={`${bestPostInterval / 60000}${language === 'ja' ? '分' : ' min'}`}
+          currentLabelText={t('currentLabel')}
+          isOpen={isBestPostSettingOpen}
+          onToggle={() => setIsBestPostSettingOpen(!isBestPostSettingOpen)}
+        >
+          <div className="space-y-2">
+            {BEST_POST_INTERVALS.map((minutes) => {
+              const value = minutes * 60 * 1000;
+              const label = `${minutes}${language === 'ja' ? '分' : ' min'}`;
+              return (
+                <label key={`bestpost-${value}`} className="flex items-center justify-between p-3 rounded-lg cursor-pointer border border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors">
+                  <div className="flex items-center gap-3">
+                    <input type="radio" name="bestPostInterval" value={value} checked={bestPostInterval === value} onChange={() => setBestPostInterval(value)} className="accent-[var(--theme-color)] w-4 h-4" />
+                    <span className="text-sm text-white">{label}</span>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+          <p className="text-xs text-gray-500 mt-3 px-1">{language === 'ja' ? 'ベストポストが更新される最小間隔です。' : 'Minimum interval between best post updates.'}</p>
         </SettingsAccordion>
 
         {/* ★追加: 最新のアップデート情報（GitHub連動） */}
