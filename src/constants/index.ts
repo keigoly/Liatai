@@ -47,6 +47,14 @@ export const FOLDER_COLORS = [
     '#a855f7', // Fuchsia
 ] as const;
 
+// ========== ベストポスト更新間隔 ==========
+export const BEST_POST_INTERVAL_OPTIONS = [
+    { label: '1分', value: 60000 },
+    { label: '5分', value: 300000 },
+    { label: '10分', value: 600000 },
+    { label: '30分', value: 1800000 },
+] as const;
+
 // ========== グラフデフォルト期間 ==========
 export const GRAPH_PERIOD_OPTIONS: { label: string; value: GraphPeriod }[] = [
     { label: '6時間', value: '6h' },
@@ -77,6 +85,7 @@ export const STORAGE_KEYS = {
     FOLDERS: 'sidestream_folders',
     REGISTERED_PANEL_TAB: 'sidestream_registered_panel_tab',
     GRAPH_DEFAULT_PERIOD: 'sidestream_settings_graphDefaultPeriod',
+    BEST_POST_INTERVAL: 'sidestream_settings_bestPostInterval',
 } as const;
 
 // ========== デフォルト値 ==========
@@ -94,6 +103,7 @@ export const DEFAULTS: {
     MAX_TWEETS: number;
     MAX_HISTORY: number;
     GRAPH_DEFAULT_PERIOD: GraphPeriod;
+    BEST_POST_INTERVAL: number;
 } = {
     LANGUAGE: 'ja',
     AUTO_REFRESH: true,
@@ -107,6 +117,7 @@ export const DEFAULTS: {
     MAX_TWEETS: 50,
     MAX_HISTORY: 20,
     GRAPH_DEFAULT_PERIOD: '6h',
+    BEST_POST_INTERVAL: 300000, // 5分
 };
 
 // ========== ランクカラー ==========
@@ -115,4 +126,16 @@ export const RANK_COLORS = {
     2: 'text-[#C0C0C0]', // Silver
     3: 'text-[#C49C48]', // Bronze
     default: 'text-gray-500',
+} as const;
+
+// ========== Tweet Replay (SYNC モード) ==========
+export const REPLAY = {
+  MAX_VISIBLE: 50,                    // リプレイ中の最大表示ツイート数
+  DRIP_INTERVAL_MS: 200,             // 同一秒の複数ツイートをドリップフィードする間隔
+  DRIP_THRESHOLD: 3,                  // この件数以下なら即座に全表示
+  PRELOAD_BATCH_DELAY_MS: 100,       // APIコール間のディレイ（レート制限回避）
+  EXPECTED_TWEETS_PER_MINUTE: 10,    // プログレス推定用（保守的な値）
+  BUFFER_MARGIN_MS: 60_000,          // 番組開始1分前からバッファ取得
+  TIME_UPDATE_THROTTLE_MS: 5000,     // リプレイ中のbroadcastTs更新間隔（デフォルト5秒）
+  TIME_UPDATE_OPTIONS: [1000, 5000, 10000, 30000] as readonly number[], // 選択肢: 1秒/5秒/10秒/30秒
 } as const;

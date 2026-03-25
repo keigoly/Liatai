@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { ThemeColor, BgMode, FontSize, NgSettings, NgWord, GraphPeriod } from '../types';
-import { STORAGE_KEYS, GRAPH_PERIOD_OPTIONS } from '../constants/index';
+import { STORAGE_KEYS, GRAPH_PERIOD_OPTIONS, BEST_POST_INTERVAL_OPTIONS } from '../constants/index';
 import { SnsShare } from './SnsShare';
 import type { Language, TranslationKey } from '../i18n/translations';
 
@@ -72,6 +72,8 @@ interface SettingsPanelProps {
   setNgSettings: (settings: NgSettings) => void;
   graphDefaultPeriod: GraphPeriod;
   setGraphDefaultPeriod: (period: GraphPeriod) => void;
+  bestPostInterval: number;
+  setBestPostInterval: (val: number) => void;
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
@@ -79,12 +81,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   trendRefreshInterval, setTrendRefreshInterval, searchRefreshInterval, setSearchRefreshInterval,
   themeColor, setThemeColor, bgMode, setBgMode, fontSize, setFontSize,
   ngSettings, setNgSettings,
-  graphDefaultPeriod, setGraphDefaultPeriod
+  graphDefaultPeriod, setGraphDefaultPeriod,
+  bestPostInterval, setBestPostInterval
 }) => {
   const [isLanguageSettingOpen, setIsLanguageSettingOpen] = useState(false);
   const [isTrendSettingOpen, setIsTrendSettingOpen] = useState(false);
   const [isSearchSettingOpen, setIsSearchSettingOpen] = useState(false);
   const [isGraphPeriodOpen, setIsGraphPeriodOpen] = useState(false);
+  const [isBestPostOpen, setIsBestPostOpen] = useState(false);
   const [isNgSettingOpen, setIsNgSettingOpen] = useState(false);
   const [isDesignSettingOpen, setIsDesignSettingOpen] = useState(false);
   const [isStorageSettingOpen, setIsStorageSettingOpen] = useState(false);
@@ -530,6 +534,27 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             ))}
           </div>
           <p className="text-xs text-gray-500 mt-3 px-1">検索時にポスト数グラフに表示するデフォルトの期間を選択します。</p>
+        </SettingsAccordion>
+
+        {/* ベストポスト更新間隔 */}
+        <SettingsAccordion
+          title={language === 'ja' ? 'ベストポスト更新間隔' : 'Best Post Refresh Interval'}
+          currentValueLabel={BEST_POST_INTERVAL_OPTIONS.find(o => o.value === bestPostInterval)?.label || `${bestPostInterval / 60000}${language === 'ja' ? '分' : ' min'}`}
+          currentLabelText={t('currentLabel')}
+          isOpen={isBestPostOpen}
+          onToggle={() => setIsBestPostOpen(!isBestPostOpen)}
+        >
+          <div className="space-y-2">
+            {BEST_POST_INTERVAL_OPTIONS.map((option, idx) => (
+              <label key={`best-${option.value}-${idx}`} className="flex items-center justify-between p-3 rounded-lg cursor-pointer border border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors">
+                <div className="flex items-center gap-3">
+                  <input type="radio" name="bestPostInterval" value={option.value} checked={bestPostInterval === option.value} onChange={() => setBestPostInterval(option.value)} className="accent-[var(--theme-color)] w-4 h-4" />
+                  <span className="text-sm text-white">{option.label}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-3 px-1">{language === 'ja' ? 'ベストポストが更新される間隔です。短くすると頻繁に新しいベストポストが表示されます。' : 'How often the best post updates. Shorter intervals show new best posts more frequently.'}</p>
         </SettingsAccordion>
 
         <SettingsAccordion

@@ -25,6 +25,7 @@ interface HeaderProps {
   onRemoveHistory: (word: string) => void;
   onSuggestionClick: (word: string) => void;
   onClearAllHistory: () => void;
+  isSyncMode?: boolean;  // 録画リプレイ中: ホーム非表示・検索ロック
 }
 
 export const Header = ({
@@ -45,6 +46,7 @@ export const Header = ({
   onRemoveHistory,
   onSuggestionClick,
   onClearAllHistory,
+  isSyncMode = false,
 }: HeaderProps) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -69,10 +71,12 @@ export const Header = ({
       {/* 上段: ホームアイコンと検索窓 */}
       <div className="flex items-center gap-3 p-3">
 
-        {/* ★修正: テキストを削除し、アイコンのみのボタンに戻しました */}
-        <button onClick={onGoHome} className="p-2 rounded-full hover:bg-[var(--card-bg-color)] transition-colors text-gray-400 hover:text-[var(--theme-color)]">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z" /></svg>
-        </button>
+        {/* ホームボタン（録画リプレイ中は非表示） */}
+        {!isSyncMode && (
+          <button onClick={onGoHome} className="p-2 rounded-full hover:bg-[var(--card-bg-color)] transition-colors text-gray-400 hover:text-[var(--theme-color)]">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12h3v8h6v-6h2v6h6v-8h3L12 2z" /></svg>
+          </button>
+        )}
 
         <div className="flex-1 relative" ref={searchContainerRef}>
           <div className="relative">
@@ -81,16 +85,17 @@ export const Header = ({
               className="w-full bg-[#202327] border border-gray-600 text-white rounded-full py-2 pl-4 pr-10 focus:outline-none focus:border-[var(--theme-color)] focus:bg-black transition-all"
               placeholder={t('searchPlaceholder')}
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => !isSyncMode && setInputValue(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && !isSyncMode) {
                   onSearch();
                   setIsHistoryOpen(false);
                 }
               }}
-              onFocus={() => setIsHistoryOpen(true)}
+              onFocus={() => !isSyncMode && setIsHistoryOpen(true)}
+              readOnly={isSyncMode}
             />
-            {inputValue && (
+            {inputValue && !isSyncMode && (
               <button
                 onClick={() => { setInputValue(''); }}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-white bg-gray-700 hover:bg-gray-600 rounded-full w-5 h-5 flex items-center justify-center text-xs transition-colors"
@@ -136,14 +141,16 @@ export const Header = ({
           )}
         </div>
 
-        <button onClick={onSearch} className="bg-[var(--theme-color)] text-white font-bold py-1.5 px-4 rounded-full hover:brightness-90 transition-all text-sm whitespace-nowrap">
-          {t('search')}
-        </button>
+        {!isSyncMode && (
+          <button onClick={onSearch} className="bg-[var(--theme-color)] text-white font-bold py-1.5 px-4 rounded-full hover:brightness-90 transition-all text-sm whitespace-nowrap">
+            {t('search')}
+          </button>
+        )}
       </div>
 
-      {/* 下段: タブ切り替え */}
+      {/* 下段: タブ切り替え（録画リプレイ中は常にフィルタタブのみ表示） */}
       <div className="flex items-end px-2">
-        {currentView === 'home' ? (
+        {currentView === 'home' && !isSyncMode ? (
           <>
             <button onClick={() => setHomeTab('trends')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${homeTab === 'trends' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>{t('trends')}</button>
             <button onClick={() => setHomeTab('registered')} className={`flex-1 pb-3 pt-2 text-center text-sm font-bold border-b-4 transition-all ${homeTab === 'registered' ? 'border-[var(--theme-color)] text-white' : 'border-transparent text-gray-500 hover:bg-[var(--card-bg-color)]'}`}>{t('registered')}</button>
@@ -158,7 +165,8 @@ export const Header = ({
         )}
       </div>
 
-      {/* 更新情報バー */}
+      {/* 更新情報バー（録画リプレイ中は非表示） */}
+      {!isSyncMode && (
       <div className="flex justify-between items-center px-4 py-1 bg-[var(--card-bg-color)] border-b border-[var(--border-color)] text-xs text-gray-400">
         <span>{currentView === 'home' && homeTab === 'trends' ? trendUpdateTime : ''}</span>
 
@@ -208,6 +216,7 @@ export const Header = ({
           </div>
         )}
       </div>
+      )}
     </header>
   );
 };

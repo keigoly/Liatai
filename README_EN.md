@@ -1,9 +1,27 @@
 # Liatai (Real-time!)
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [日本語](README.md) | English
+
+---
+
+## 🆕 v1.2.2 Updates
+
+### Improvements
+* **🎨 Search Animation Improvement**: Tweet list now appears simultaneously with a smooth float-up animation after searching.
+* **🔄 Natural Best Post Flow**: Best Post updates no longer cause a reload — they now flow in naturally from the top together with other new posts.
+* **🖼️ Media Display Fix**: Fixed an issue where image and video thumbnails were not being displayed.
+
+---
+
+## 🆕 v1.2.1 Updates
+
+### Improvements
+* **⭐ Best Post Refresh Interval Setting**: You can now choose the Best Post refresh interval from 1 min / 5 min / 10 min / 30 min (default: 5 min). Configurable from "Best Post Refresh Interval" in Settings.
+* **🔄 Natural Best Post Display**: When the Best Post refreshes, it now flows in naturally together with new timeline posts instead of jumping to the top.
+* **📊 Auto Graph Refresh**: Post count graph data is now automatically refreshed when the Best Post updates.
 
 ---
 

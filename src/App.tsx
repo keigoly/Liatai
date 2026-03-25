@@ -2,14 +2,18 @@
 // メインアプリケーションコンポーネント
 // リファクタリング済み: 500行 → 約200行
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { fetchRealtimeTrends } from './services/realtimeService';
-import type { TrendItem, TabType, ViewType, HomeTabType } from './types/index';
+import type { TrendItem, Tweet, TabType, ViewType, HomeTabType } from './types/index';
 
 // フック
-import { useSettings, useSearchHistory, useTheme, useTweets } from './hooks/index';
+import { useSettings, useSearchHistory, useTheme, useTweets, useTweetReplay } from './hooks/index';
 import { useLanguage } from './hooks/useLanguage';
+import { REPLAY } from './constants/index';
+
+// NextGenTV ブリッジ
+import { bridgeState, setBridgeOnInit, setBridgeOnTimeUpdate, getBroadcastTimestamp } from './lib/nextgentv-bridge';
 
 // コンポーネント
 import { Header } from './components/Header';
@@ -41,8 +45,13 @@ function App() {
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [currentView, setCurrentView] = useState<ViewType>('home');
   const [homeTab, setHomeTab] = useState<HomeTabType>('trends');
+  // SYNC モード: 録画再生時の放送時刻タイムスタンプ
+  const [broadcastTs, setBroadcastTs] = useState(0);
+  // SYNC モード: ツイート更新間隔（ms）— ユーザーがUIから変更可能
+  const [replayIntervalMs, setReplayIntervalMs] = useState<number>(REPLAY.TIME_UPDATE_THROTTLE_MS);
 
   // ========== Refs ==========
+  const replayIntervalRef = useRef<number>(REPLAY.TIME_UPDATE_THROTTLE_MS);
   const intervalRef = useRef<number | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [tweetListRef] = useAutoAnimate<HTMLDivElement>({ duration: 500, easing: 'ease-out' });
@@ -53,6 +62,7 @@ function App() {
     isScrolled,
     scrollContainerRef,
     setIsScrolled,
+    bestPostInterval: settings.bestPostInterval,
   });
 
   // ========== イベントハンドラ ==========
@@ -130,12 +140,38 @@ function App() {
       loadTrends();
       if (searchKeyword) tweetsState.loadTweets(false, searchKeyword);
     }
+
+    // NextGenTV iframe 埋め込み時: NEXTGENTV_INIT で受信したキーワードで自動検索
+    if (bridgeState.isEmbedded) {
+      setBridgeOnInit((keyword, mode) => {
+        console.log('[リアタイ App] INIT received:', keyword, mode);
+        handleTrendClick(keyword);
+      });
+      // SYNC モード: TIME_UPDATE を受信するたびに放送時刻を更新
+      // 一時停止中は更新を停止してツイート表示を完全に止める
+      // replayIntervalRef で最新の間隔設定をクロージャ内から参照する
+      let lastUpdate = 0;
+      setBridgeOnTimeUpdate(() => {
+        if (bridgeState.paused) return;
+        const now = Date.now();
+        if (now - lastUpdate < replayIntervalRef.current) return;
+        lastUpdate = now;
+        const ts = getBroadcastTimestamp();
+        setBroadcastTs(ts);
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // replayIntervalMs が変更されたら ref を同期
+  useEffect(() => {
+    replayIntervalRef.current = replayIntervalMs;
+  }, [replayIntervalMs]);
+
   useEffect(() => {
     if (intervalRef.current) window.clearInterval(intervalRef.current);
-    if (settings.autoRefresh) {
+    // SYNC リプレイ中は自動更新を停止（プリロード済みバッファから表示するため）
+    if (settings.autoRefresh && !isSyncMode) {
       const currentInterval = currentView === 'home'
         ? settings.trendRefreshInterval
         : settings.searchRefreshInterval;
@@ -151,7 +187,26 @@ function App() {
   }, [settings.autoRefresh, searchKeyword, currentView, homeTab, settings.trendRefreshInterval, settings.searchRefreshInterval, isScrolled, tweetsState.tweets]);
 
   // ========== フィルタリング ==========
-  const filteredTweets = tweetsState.filterTweets(tweetsState.tweets, activeTab, settings.ngSettings);
+  const ngFilteredTweets = tweetsState.filterTweets(tweetsState.tweets, activeTab, settings.ngSettings);
+  const isSyncMode = bridgeState.mode === 'video' && broadcastTs > 0;
+
+  // ========== Tweet Replay（SYNC モード） ==========
+  // 放送時間帯のツイートを事前取得し、映像再生に同期して1件ずつ表示する
+  const ngFilterFn = useCallback(
+    (tweets: Tweet[]) => tweetsState.filterTweets(tweets, activeTab, settings.ngSettings),
+    [activeTab, settings.ngSettings],
+  );
+  const replayState = useTweetReplay({
+    keyword: searchKeyword,
+    programStartMs: bridgeState.programStartTime ? new Date(bridgeState.programStartTime).getTime() : 0,
+    programEndMs: bridgeState.programEndTime ? new Date(bridgeState.programEndTime).getTime() : 0,
+    broadcastTs,
+    isSyncMode,
+    ngFilterFn,
+  });
+
+  // SYNC リプレイ中は replay hook の visibleTweets を使用、通常時は既存のフィルタリング
+  const filteredTweets = isSyncMode ? replayState.visibleTweets : ngFilteredTweets;
 
   // ========== レンダリング ==========
   return (
@@ -161,6 +216,7 @@ function App() {
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         @keyframes rank-in { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); } }
         .animate-rank-in { opacity: 0; animation: rank-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        @keyframes tweet-list-in { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
       `}</style>
 
       {openMenuId && <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setOpenMenuId(null)}></div>}
@@ -184,6 +240,7 @@ function App() {
           onRemoveHistory={searchHistoryState.removeFromHistory}
           onSuggestionClick={handleTrendClick}
           onClearAllHistory={searchHistoryState.clearAllHistory}
+          isSyncMode={isSyncMode}
         />
 
         {currentView === 'search' && (isScrolled || tweetsState.pendingTweets.length > 0) && (
@@ -196,7 +253,7 @@ function App() {
         )}
 
         <main ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto scrollbar-hide text-[1em]">
-          {currentView === 'home' && (
+          {currentView === 'home' && !isSyncMode && (
             <div key="home-view" className="h-full flex flex-col">
               {homeTab === 'trends' && <TrendList trends={trends} isLoading={isTrendLoading} onTrendClick={handleTrendClick} />}
               {homeTab === 'registered' && <RegisteredPanel t={t} onSearch={handleTrendClick} />}
@@ -219,20 +276,58 @@ function App() {
                   setNgSettings={settings.setNgSettings}
                   graphDefaultPeriod={settings.graphDefaultPeriod}
                   setGraphDefaultPeriod={settings.setGraphDefaultPeriod}
+                  bestPostInterval={settings.bestPostInterval}
+                  setBestPostInterval={settings.setBestPostInterval}
                 />
               )}
             </div>
           )}
 
-          {currentView === 'search' && (
+          {(currentView === 'search' || isSyncMode) && (
             <div key="search-view" className="animate-in fade-in duration-300">
-              {/* ポスト数グラフ（開閉式） */}
-              {searchKeyword && <TweetGraph keyword={searchKeyword} defaultPeriod={settings.graphDefaultPeriod} />}
+              {/* SYNC リプレイ: プログレスバー or リプレイインジケーター */}
+              {isSyncMode && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-[var(--card-bg-color)] border-b border-[var(--border-color)] text-xs text-gray-400">
+                  {replayState.isPreloading ? (
+                    <>
+                      <div className="animate-spin h-3 w-3 border-2 border-[var(--theme-color)] rounded-full border-t-transparent" />
+                      <span>ツイート読み込み中...</span>
+                      <span className="ml-auto">{Math.round(replayState.preloadProgress * 100)}%</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      <span>REPLAY</span>
+                      {/* 更新間隔セレクター */}
+                      <div className="flex gap-1 ml-2">
+                        {[1000, 3000, 5000, 10000].map(ms => (
+                          <button
+                            key={ms}
+                            onClick={() => setReplayIntervalMs(ms)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
+                              replayIntervalMs === ms
+                                ? 'bg-[var(--theme-color)] text-white'
+                                : 'bg-[var(--bg-color)] text-gray-500 hover:text-white'
+                            }`}
+                          >
+                            {ms / 1000}s
+                          </button>
+                        ))}
+                      </div>
+                      <span className="ml-auto">
+                        {new Date(broadcastTs).toLocaleTimeString('ja-JP')} ({filteredTweets.length}/{replayState.bufferSize})
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+              {/* ポスト数グラフ（開閉式）— SYNC モード時は非表示 */}
+              {searchKeyword && !isSyncMode && <TweetGraph keyword={searchKeyword} defaultPeriod={settings.graphDefaultPeriod} refreshTrigger={tweetsState.bestPostUpdatedAt} />}
 
               {tweetsState.isTweetLoading && (
                 <div className="flex justify-center py-10"><div className="animate-spin h-6 w-6 border-4 border-[var(--theme-color)] rounded-full border-t-transparent"></div></div>
               )}
-              <div className="flex flex-col" ref={tweetListRef}>
+              <div key={tweetsState.fullRefreshKey} className="flex flex-col" style={{ animation: 'tweet-list-in 0.5s ease-out' }} ref={tweetListRef}>
                 {filteredTweets.map((tweet) => (
                   <TweetCard
                     key={tweet.id}
@@ -245,10 +340,14 @@ function App() {
                   />
                 ))}
               </div>
-              {!tweetsState.isTweetLoading && filteredTweets.length === 0 && (
-                <div className="text-center py-20 text-gray-500 text-sm">ツイートが見つかりませんでした。</div>
+              {!tweetsState.isTweetLoading && !replayState.isPreloading && filteredTweets.length === 0 && (
+                <div className="text-center py-20 text-gray-500 text-sm">
+                  {isSyncMode
+                    ? 'この再生位置のツイートはまだありません。'
+                    : 'ツイートが見つかりませんでした。'}
+                </div>
               )}
-              {!tweetsState.isTweetLoading && filteredTweets.length > 0 && tweetsState.hasMoreTweets && (
+              {!isSyncMode && !tweetsState.isTweetLoading && filteredTweets.length > 0 && tweetsState.hasMoreTweets && (
                 <div className="flex justify-center py-6">
                   <button
                     onClick={tweetsState.loadMoreTweets}

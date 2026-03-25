@@ -6,6 +6,62 @@
 
 **Sidestream (リアタイ！)** は、ChromeのサイドパネルにリアルタイムのTwitter/Xトレンドとツイート検索結果を表示するChrome拡張機能（Manifest V3）です。Yahoo!リアルタイム検索（`search.yahoo.co.jp/realtime`）からデータを取得しています。
 
+## 秘匿事項
+
+- **NextGenTV プロジェクトおよび `nextgentv` ブランチに関する情報は一切外部に公開しないこと**
+- `nextgentv` ブランチはリモートリポジトリにpushしない（ローカル専用）
+- コミットメッセージ、PR、リリースノート、README等にNextGenTV関連の記述を含めない
+- NextGenTV との連携機能（postMessage ブリッジ、SYNC モード等）の存在を公開リポジトリに反映しない
+
+## ブランチ構成と開発フロー
+
+このリポジトリは2つの配布先に向けて開発されています。
+
+| ブランチ | 配布先 | 説明 |
+|---------|--------|------|
+| `main` | Chrome Web Store | Chrome 拡張機能版。Yahoo に直接アクセス（host_permissions で CORS 回避） |
+| `nextgentv` | NextGenTV プラグイン | NextGenTV の視聴画面に iframe で埋め込まれる版。将来的に録画連動・時間同期等の固有機能を追加 |
+
+### 開発ルール
+
+- **共通の改善**（UI修正、バグ修正、新機能）は `main` ブランチで行い、`nextgentv` に定期的にマージする
+- **NextGenTV 固有機能**（録画連動、再生時間同期、NextGenTV API 連携）は `nextgentv` ブランチのみに追加
+- Chrome Web Store の審査は `main` ブランチからのみ提出
+- NextGenTV 版はビルド後に直接デプロイされるため、審査なしで即座に反映される
+
+### NextGenTV へのデプロイ手順
+
+`nextgentv` ブランチで作業後：
+
+```bash
+# 1. リアタイをビルド
+npm run build
+
+# 2. dist/ を NextGenTV にコピー
+cp -r dist/* G:/Developments/NextGenerationTV/NextGenTV/client/public/realtime/
+
+# 3. Yahoo URL をサーバー側プロキシ経由に置換（CORS 回避のため必須）
+cd G:/Developments/NextGenerationTV/NextGenTV/client/public/realtime/assets/
+sed -i 's|https://search.yahoo.co.jp|/api/realtime/yahoo-proxy|g' main-*.js
+
+# 4. NextGenTV をビルド & 本番にデプロイ
+cd G:/Developments/NextGenerationTV/NextGenTV/client
+yarn build
+cp -r dist/* C:/DTV/NextGenTV/client/dist/
+
+# 5. NextGenTV サービスを再起動
+powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile -Command \"Restart-Service \\\"NextGenTV Service\\\"\"' -Wait"
+```
+
+### NextGenTV 側の関連ファイル
+
+- `server/app/routers/RealtimeRouter.py` — Yahoo! リアルタイム検索へのプロキシ API
+- `client/src/components/Watch/Watch.vue` — リアタイ窓 (iframe) の表示
+- `client/src/components/Watch/Player.vue` — リアタイトグルボタン
+- `client/src/stores/PlayerStore.ts` — `is_realtime_display` 状態管理
+- `client/src/stores/SettingsStore.ts` — `plugin_realtime_enabled` 設定
+- `client/src/views/Settings/Plugins.vue` — プラグイン設定ページ
+
 - **データ取得**: `__NEXT_DATA__` JSON（`pageProps.pageData`）を優先し、フォールバックとしてDOM パース（`#bt`, `#autosr`, `#sr`）
 - **API連携**: Yahoo の `/realtime/api/v1/pagination`（もっと見る）、`/realtime/api/v1/transition`（ポスト数グラフ）
 - **i18n**: アプリ内は `src/i18n/translations.ts`（ja/en）、Chrome Web Store は `public/_locales/`（ja/en）

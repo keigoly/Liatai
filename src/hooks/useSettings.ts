@@ -31,6 +31,10 @@ export interface SettingsState {
     // グラフ
     graphDefaultPeriod: GraphPeriod;
     setGraphDefaultPeriod: React.Dispatch<React.SetStateAction<GraphPeriod>>;
+
+    // ベストポスト更新間隔
+    bestPostInterval: number;
+    setBestPostInterval: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export function useSettings(): SettingsState {
@@ -74,6 +78,11 @@ export function useSettings(): SettingsState {
         DEFAULTS.GRAPH_DEFAULT_PERIOD
     );
 
+    const [bestPostInterval, setBestPostInterval] = useLocalStorage<number>(
+        STORAGE_KEYS.BEST_POST_INTERVAL,
+        DEFAULTS.BEST_POST_INTERVAL
+    );
+
     // NG設定用のラッパー関数
     const setNgSettings = (newSettings: NgSettings | ((prev: NgSettings) => NgSettings)) => {
         setNgSettingsState(prev => {
@@ -98,5 +107,7 @@ export function useSettings(): SettingsState {
         setNgSettings,
         graphDefaultPeriod,
         setGraphDefaultPeriod,
+        bestPostInterval,
+        setBestPostInterval,
     };
 }

@@ -20,10 +20,20 @@ interface JsonEntry {
   rtCount?: number;
   qtCount?: number;
   replyCount?: number;
-  media?: Array<{ thumbnailUrl?: string }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  media?: Array<Record<string, any>>;
   replyScreenName?: string;
   badge?: { show?: boolean; type?: string; color?: string };
 }
+
+// ========== YahooのJSONキーワードハイライト用マーカー除去 ==========
+// displayText/displayTextBody、name 等に "START keyword END" 形式で挿入される
+const stripYahooMarkers = (text: string): string =>
+  text
+    .replace(/START ?(.*?) ?END/g, '$1')  // マーカー除去（マーカー内側のスペースのみ消費）
+    .replace(/#\s+(?=\S)/g, '#')          // "# keyword" → "#keyword"（ハッシュタグ修復）
+    .replace(/ {2,}/g, ' ')               // 連続半角スペースを1つに
+    .trim();
 
 // ========== 共通: JSONエントリ → Tweet 変換 ==========
 const mapEntryToTweet = (entry: JsonEntry): Tweet => {
@@ -36,16 +46,25 @@ const mapEntryToTweet = (entry: JsonEntry): Tweet => {
   else if (diffSec < 86400) timestamp = `${Math.floor(diffSec / 3600)}時間前`;
   else timestamp = `${Math.floor(diffSec / 86400)}日前`;
 
+  const rawText = entry.displayTextBody || entry.displayText || '';
+
+  // メディアURL抽出（Yahoo JSON: media[].metaImageUrl がサムネイル）
+  let mediaUrl: string | undefined;
+  if (entry.media && entry.media.length > 0) {
+    const m = entry.media[0];
+    mediaUrl = m.metaImageUrl || m.thumbnailUrl || m.url || m.originalUrl;
+  }
+
   return {
     id: String(entry.id),
-    text: entry.displayTextBody || entry.displayText || '',
+    text: stripYahooMarkers(rawText),
     url: entry.url || '',
     timestamp,
     createdAt: createdAtMs,
-    author: entry.name || 'Unknown',
+    author: stripYahooMarkers(entry.name || 'Unknown'),
     handle: entry.screenName ? `@${entry.screenName}` : '',
     iconUrl: entry.profileImage || '',
-    mediaUrl: entry.media && entry.media.length > 0 ? entry.media[0].thumbnailUrl : undefined,
+    mediaUrl,
     retweetCount: entry.rtCount ? String(entry.rtCount) : undefined,
     likeCount: entry.likesCount ? String(entry.likesCount) : undefined,
     isBest: false,
@@ -313,6 +332,19 @@ export const fetchRealtimeTweets = async (keyword: string, start: number = 1): P
     console.error('[Service] Fetch tweets failed:', error);
     return { best: null, timeline: [] };
   }
+};
+
+// ========== Snowflake ID で特定時刻のツイートを取得（SYNC モード用） ==========
+// Twitter Snowflake ID: (timestamp_ms - 1288834974657) << 22
+// 放送終了時刻の Snowflake ID を生成し、その直前のツイートをページネーション API で取得する
+const TWITTER_EPOCH = 1288834974657n;
+export const timestampToSnowflakeId = (timestampMs: number): string => {
+  const ts = BigInt(Math.floor(timestampMs));
+  return ((ts - TWITTER_EPOCH) << 22n).toString();
+};
+export const fetchTweetsAtTime = async (keyword: string, timestampMs: number): Promise<Tweet[]> => {
+  const syntheticId = timestampToSnowflakeId(timestampMs);
+  return fetchMoreTweets(keyword, syntheticId, 0);
 };
 
 // ========== ページネーション（もっと見る機能用） ==========

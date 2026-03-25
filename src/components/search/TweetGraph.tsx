@@ -8,6 +8,7 @@ import type { TransitionResult, GraphPeriod } from '../../types/index';
 interface TweetGraphProps {
   keyword: string;
   defaultPeriod?: GraphPeriod;
+  refreshTrigger?: number;
 }
 
 const PERIOD_LABELS: { key: GraphPeriod; label: string }[] = [
@@ -38,8 +39,9 @@ const LineChart = ({ data, period }: { data: TransitionResult; period: GraphPeri
   const chartH = H - PAD.top - PAD.bottom;
 
   const maxCount = Math.max(...entries.map(e => e.count), 1);
+  const divisor = Math.max(entries.length - 1, 1);
   const points = entries.map((e, i) => ({
-    x: PAD.left + (i / (entries.length - 1)) * chartW,
+    x: PAD.left + (i / divisor) * chartW,
     y: PAD.top + chartH - (e.count / maxCount) * chartH,
     count: e.count,
     from: e.from,
@@ -84,7 +86,7 @@ const LineChart = ({ data, period }: { data: TransitionResult; period: GraphPeri
       {/* X軸ラベル */}
       {xLabels.map((e, i) => {
         const idx = entries.indexOf(e);
-        const x = PAD.left + (idx / (entries.length - 1)) * chartW;
+        const x = PAD.left + (idx / divisor) * chartW;
         return (
           <text key={i} x={x} y={H - 4} textAnchor="middle" fontSize="7" fill="#8b98a5">
             {formatTime(e.from, period)}
@@ -128,7 +130,7 @@ const SentimentChart = ({ positive, negative }: { positive: number; negative: nu
   );
 };
 
-export const TweetGraph = ({ keyword, defaultPeriod = '6h' }: TweetGraphProps) => {
+export const TweetGraph = ({ keyword, defaultPeriod = '6h', refreshTrigger = 0 }: TweetGraphProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [period, setPeriod] = useState<GraphPeriod>(defaultPeriod);
   const [cache, setCache] = useState<Partial<Record<GraphPeriod, TransitionResult>>>({});
@@ -160,6 +162,23 @@ export const TweetGraph = ({ keyword, defaultPeriod = '6h' }: TweetGraphProps) =
       });
     }
   }, [keyword, defaultPeriod]);
+
+  // ベストポスト更新時にグラフも再取得
+  const lastRefreshTrigger = useRef(0);
+  useEffect(() => {
+    if (refreshTrigger > lastRefreshTrigger.current && keyword) {
+      lastRefreshTrigger.current = refreshTrigger;
+      fetchTransitionGraph(keyword, defaultPeriod).then(result => {
+        setCache(prev => ({ ...prev, [defaultPeriod]: result }));
+      });
+      // グラフが開いていて別の期間を表示中ならそちらも更新
+      if (isOpen && period !== defaultPeriod) {
+        fetchTransitionGraph(keyword, period).then(result => {
+          setCache(prev => ({ ...prev, [period]: result }));
+        });
+      }
+    }
+  }, [refreshTrigger, keyword, defaultPeriod, isOpen, period]);
 
   // パネルを開いた時、キャッシュになければ取得
   useEffect(() => {
