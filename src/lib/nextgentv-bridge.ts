@@ -78,8 +78,11 @@ export const bridgeState = {
 };
 
 // postMessage リスナーを設定し、準備完了を親に通知する
+// 多重登録を防止するフラグ（React Strict Mode の二重マウントでも安全）
+let _bridgeInitialized = false;
 export function initBridge() {
-  if (!bridgeState.isEmbedded) return;
+  if (!bridgeState.isEmbedded || _bridgeInitialized) return;
+  _bridgeInitialized = true;
 
   window.addEventListener('message', (event: MessageEvent<NextGenTVMessage>) => {
     const data = event.data;

@@ -215,8 +215,9 @@ export function useTweetReplay({
         // Step 3: createdAt 昇順にソートしてバッファに格納し、IndexedDB にキャッシュ
         accumulated.sort((a, b) => a.createdAt - b.createdAt);
 
-        // IndexedDB にキャッシュ保存
+        // IndexedDB にキャッシュ保存（保存中にキャンセルされた場合は状態更新しない）
         await saveCachedTweets(keyword, programStartMs, programEndMs, accumulated);
+        if (cancelledRef.current) return;
 
         bufferRef.current = accumulated;
         revealIndexRef.current = -1;
@@ -282,11 +283,11 @@ export function useTweetReplay({
       const dripTarget = targetIndex;
 
       dripTimerRef.current = setInterval(() => {
-        dripIndex++;
+        dripIndex = Math.min(dripIndex + 1, bufferRef.current.length - 1);
         revealIndexRef.current = dripIndex;
         updateVisibleFromBuffer(dripIndex);
 
-        if (dripIndex >= dripTarget) {
+        if (dripIndex >= dripTarget || dripIndex >= bufferRef.current.length - 1) {
           clearDripTimer();
         }
       }, REPLAY.DRIP_INTERVAL_MS);

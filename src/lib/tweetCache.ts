@@ -82,6 +82,7 @@ export async function getCachedTweets(
     const transaction = db.transaction(STORE_NAME, 'readonly');
     const store = transaction.objectStore(STORE_NAME);
     const entry = await promisifyRequest<CacheEntry | undefined>(store.get(cacheKey));
+    await promisifyTransaction(transaction);
 
     db.close();
 
