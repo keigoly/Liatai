@@ -131,12 +131,23 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
   // ドラッグ用（フォルダ一覧のみ）
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
 
-  // 移動アニメーション用
-  const [movedWordId, setMovedWordId] = useState<string | null>(null);
+  // モーダル内ワードのドラッグ用
+  const [modalDragIndex, setModalDragIndex] = useState<number | null>(null);
+  // 入れ替えアニメーション用: 押し出されたアイテムのID
+  const [displacedWordId, setDisplacedWordId] = useState<string | null>(null);
+  // モーダル内ワードの3点メニュー
+  const [modalWordMenuId, setModalWordMenuId] = useState<string | null>(null);
+  // モーダル内ワード編集
+  const [editingWordId, setEditingWordId] = useState<string | null>(null);
+  const [editingWordText, setEditingWordText] = useState('');
+  // フォルダ移動確認ポップアップ
+  const [moveConfirm, setMoveConfirm] = useState<{
+    word: RegisteredItem;
+    targetFolder: { id: string; name: string; color: string };
+  } | null>(null);
 
   // アニメーション
   const [listRef] = useAutoAnimate<HTMLDivElement>();
-  // モーダル内はボタン方式のためアニメーション無効
 
   useEffect(() => {
     localStorage.setItem('sidestream_registered_panel_tab', activeTab);
@@ -229,6 +240,68 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
   const removeModalWord = (wordId: string) => {
     if (!modalData) return;
     setModalData(prev => prev ? { ...prev, items: prev.items.filter(w => w.id !== wordId) } : null);
+    setModalWordMenuId(null);
+  };
+
+  // ワード変更: インライン編集を開始
+  const startEditModalWord = (word: RegisteredItem) => {
+    setEditingWordId(word.id);
+    setEditingWordText(word.text);
+    setModalWordMenuId(null);
+  };
+
+  // ワード変更: 確定
+  const confirmEditModalWord = () => {
+    if (!editingWordId || !editingWordText.trim() || !modalData) return;
+    setModalData(prev => prev ? {
+      ...prev,
+      items: prev.items.map(w => w.id === editingWordId ? { ...w, text: editingWordText.trim() } : w),
+    } : null);
+    setEditingWordId(null);
+    setEditingWordText('');
+  };
+
+  // ワード変更: キャンセル
+  const cancelEditModalWord = () => {
+    setEditingWordId(null);
+    setEditingWordText('');
+  };
+
+  // 別のフォルダに移動: 移動先選択を表示
+  const startMoveModalWord = (wordId: string) => {
+    if (!modalData) return;
+    const word = modalData.items.find(w => w.id === wordId);
+    if (!word) return;
+    // 3点メニューを閉じて移動先選択リストを直接表示
+    setModalWordMenuId(null);
+    // movingWordId に該当ワードIDをセット（移動先リストの表示に使用）
+    setMoveConfirm({ word, targetFolder: { id: '', name: '', color: '' } });
+  };
+
+  // 別のフォルダに移動: 移動先を選択 → 確認ポップアップ表示
+  const selectMoveTarget = (targetFolder: FolderItem) => {
+    if (!moveConfirm) return;
+    setMoveConfirm({ ...moveConfirm, targetFolder: { id: targetFolder.id, name: targetFolder.name, color: targetFolder.color } });
+  };
+
+  // 別のフォルダに移動: 確定（folders と modalData の両方を同時更新）
+  const confirmMoveWord = () => {
+    if (!moveConfirm || !moveConfirm.targetFolder.id || !modalData) return;
+    const { word, targetFolder } = moveConfirm;
+    // 1. 元フォルダ（保存済み）からワードを削除 & 移動先フォルダに追加（アトミック更新）
+    setFolders(prev => prev.map(f => {
+      if (f.id === modalData.id) return { ...f, items: f.items.filter(w => w.id !== word.id) };
+      if (f.id === targetFolder.id) return { ...f, items: [word, ...f.items] };
+      return f;
+    }));
+    // 2. モーダル（編集中コピー）からもワードを削除
+    setModalData(prev => prev ? { ...prev, items: prev.items.filter(w => w.id !== word.id) } : null);
+    setMoveConfirm(null);
+  };
+
+  // 別のフォルダに移動: キャンセル
+  const cancelMoveWord = () => {
+    setMoveConfirm(null);
   };
 
   const removeFolder = (id: string) => {
@@ -298,33 +371,32 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
     setDraggedItemIndex(null);
   };
 
-  // --- モーダル内ワード移動（上下ボタン） ---
-  const moveModalWordUp = (index: number) => {
-    if (index <= 0 || !modalData) return;
-    const movedId = modalData.items[index].id;
-    setModalData(prev => {
-      if (!prev) return null;
-      const newItems = [...prev.items];
-      [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
-      return { ...prev, items: newItems };
-    });
-    // アニメーション発火
-    setMovedWordId(movedId);
-    setTimeout(() => setMovedWordId(null), 400);
+  // --- モーダル内ワードのドラッグ&ドロップ ---
+  const handleModalDragStart = (index: number) => {
+    setModalDragIndex(index);
   };
 
-  const moveModalWordDown = (index: number) => {
-    if (!modalData || index >= modalData.items.length - 1) return;
-    const movedId = modalData.items[index].id;
+  const handleModalDragOver = (e: React.DragEvent, overIndex: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (modalDragIndex === null || modalDragIndex === overIndex || !modalData) return;
+    // 押し出されるアイテムのIDを記録（くるっとアニメーション用）
+    const displacedId = modalData.items[overIndex].id;
+    setDisplacedWordId(displacedId);
+    setTimeout(() => setDisplacedWordId(null), 300);
+    // リアルタイムに並び替え
     setModalData(prev => {
       if (!prev) return null;
       const newItems = [...prev.items];
-      [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+      const [dragged] = newItems.splice(modalDragIndex, 1);
+      newItems.splice(overIndex, 0, dragged);
       return { ...prev, items: newItems };
     });
-    // アニメーション発火
-    setMovedWordId(movedId);
-    setTimeout(() => setMovedWordId(null), 400);
+    setModalDragIndex(overIndex);
+  };
+
+  const handleModalDragEnd = () => {
+    setModalDragIndex(null);
   };
 
   return (
@@ -342,12 +414,13 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
           0% { opacity: 0; transform: scale(0.95) translateY(10px); }
           100% { opacity: 1; transform: scale(1) translateY(0); }
         }
-        @keyframes word-highlight {
-          0% { background-color: rgba(29, 155, 240, 0.4); transform: scale(1.02); }
-          100% { background-color: transparent; transform: scale(1); }
+        @keyframes word-swap {
+          0% { transform: scale(0.85) rotate(-6deg); opacity: 0.5; }
+          50% { transform: scale(1.04) rotate(2deg); opacity: 1; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
         }
-        .animate-word-move {
-          animation: word-highlight 0.4s ease-out;
+        .animate-word-swap {
+          animation: word-swap 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
       `}</style>
 
@@ -404,42 +477,96 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
               {t('maxWordsNote')}
             </p>
 
-            <div className="flex-1 overflow-y-auto mb-4 min-h-[150px] scrollbar-hide">
+            <div className="flex-1 overflow-y-auto mb-4 min-h-[150px] scrollbar-hide relative">
+              {/* モーダル内メニュー閉じる用オーバーレイ */}
+              {modalWordMenuId && (
+                <div className="fixed inset-0 z-[65]" onClick={() => setModalWordMenuId(null)} />
+              )}
               {modalData.items.length === 0 ? (
                 <div className="text-center text-gray-500 text-xs py-10">{t('noRegisteredWordsShort')}</div>
               ) : (
                 modalData.items.map((w, index) => (
                   <div
                     key={w.id}
-                    className={`flex justify-between items-center p-3 border-b border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors ${movedWordId === w.id ? 'animate-word-move' : ''}`}
+                    draggable={editingWordId !== w.id}
+                    onDragStart={() => handleModalDragStart(index)}
+                    onDragOver={(e) => handleModalDragOver(e, index)}
+                    onDragEnd={handleModalDragEnd}
+                    className={`relative flex justify-between items-center p-3 border-b border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors ${modalDragIndex === index ? 'opacity-40' : ''} ${displacedWordId === w.id ? 'animate-word-swap' : ''}`}
                   >
-                    <div className="flex items-center gap-2">
-                      {/* 上下移動ボタン */}
-                      <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      {/* ドラッグハンドル */}
+                      <div className="cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300 touch-none flex-shrink-0">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <circle cx="9" cy="5" r="1.5" /><circle cx="15" cy="5" r="1.5" />
+                          <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
+                          <circle cx="9" cy="19" r="1.5" /><circle cx="15" cy="19" r="1.5" />
+                        </svg>
+                      </div>
+                      {editingWordId === w.id ? (
+                        <div className="flex items-center gap-1 flex-1 min-w-0">
+                          <input
+                            type="text"
+                            value={editingWordText}
+                            onChange={(e) => setEditingWordText(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') confirmEditModalWord(); if (e.key === 'Escape') cancelEditModalWord(); }}
+                            autoFocus
+                            className="flex-1 min-w-0 bg-[#202327] border border-[var(--theme-color)] rounded px-2 py-1 text-sm text-white outline-none"
+                          />
+                          <button onClick={confirmEditModalWord} className="text-green-400 hover:text-green-300 p-1 flex-shrink-0">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                          </button>
+                          <button onClick={cancelEditModalWord} className="text-gray-500 hover:text-gray-300 p-1 flex-shrink-0">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-sm font-bold truncate">{w.text}</span>
+                      )}
+                    </div>
+
+                    {/* 3点メニュー */}
+                    {editingWordId !== w.id && (
+                      <button
+                        onClick={() => setModalWordMenuId(prev => prev === w.id ? null : w.id)}
+                        className="text-gray-500 hover:text-white p-1 flex-shrink-0"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                          <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
+                        </svg>
+                      </button>
+                    )}
+
+                    {/* メニューポップアップ */}
+                    {modalWordMenuId === w.id && (
+                      <div className="absolute right-2 top-10 z-[70] bg-[#202327] border border-gray-600 rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
                         <button
-                          onClick={() => moveModalWordUp(index)}
-                          disabled={index === 0}
-                          className={`p-0.5 rounded hover:bg-gray-700 transition-colors ${index === 0 ? 'opacity-30 cursor-not-allowed' : 'text-gray-400 hover:text-white'}`}
+                          onClick={() => startEditModalWord(w)}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18 15l-6-6-6 6" />
-                          </svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /></svg>
+                          ワード変更
                         </button>
+                        {/* 別のフォルダに移動（新規作成中は非表示、移動先がない場合も非表示） */}
+                        {modalData.id !== '' && folders.filter(f => f.id !== modalData.id).length > 0 && (
+                          <button
+                            onClick={() => startMoveModalWord(w.id)}
+                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" /></svg>
+                            別のフォルダに移動
+                          </button>
+                        )}
                         <button
-                          onClick={() => moveModalWordDown(index)}
-                          disabled={index === modalData.items.length - 1}
-                          className={`p-0.5 rounded hover:bg-gray-700 transition-colors ${index === modalData.items.length - 1 ? 'opacity-30 cursor-not-allowed' : 'text-gray-400 hover:text-white'}`}
+                          onClick={() => removeModalWord(w.id)}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-gray-700 transition-colors"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M6 9l6 6 6-6" />
-                          </svg>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                          削除
                         </button>
                       </div>
-                      <span className="text-sm font-bold">{w.text}</span>
-                    </div>
-                    <button onClick={() => removeModalWord(w.id)} className="text-gray-500 hover:text-red-400 p-1">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                    </button>
+                    )}
+
                   </div>
                 ))
               )}
@@ -449,6 +576,82 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
               <button onClick={() => setModalData(null)} className="flex-1 py-2 rounded-full border border-gray-600 hover:bg-gray-800 transition-colors text-sm font-bold">{t('cancel')}</button>
               <button onClick={addFolder} className="flex-1 py-2 rounded-full bg-[var(--theme-color)] text-white font-bold hover:opacity-90 transition-opacity text-sm">{t('save')}</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* フォルダ移動確認ポップアップ */}
+      {moveConfirm && modalData && (
+        <div className="fixed inset-0 z-[80] bg-black/85 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={cancelMoveWord}>
+          <div
+            className="bg-[#16181c] border border-gray-700 rounded-xl p-5 w-full max-w-xs shadow-2xl"
+            onClick={e => e.stopPropagation()}
+            style={{ animation: 'modalPopup 0.25s cubic-bezier(0.16, 1, 0.3, 1)' }}
+          >
+            {!moveConfirm.targetFolder.id ? (
+              <>
+                {/* Step 1: 移動先フォルダを選択 */}
+                <h3 className="font-bold text-base text-center text-white mb-1">ワードを移動</h3>
+                <p className="text-center text-xs text-gray-400 mb-4">
+                  <span className="text-[var(--theme-color)] font-bold">{moveConfirm.word.text}</span> の移動先を選択
+                </p>
+                <div className="max-h-[250px] overflow-y-auto scrollbar-hide mb-4">
+                  {folders.filter(f => f.id !== modalData.id).map(f => (
+                    <button
+                      key={f.id}
+                      onClick={() => selectMoveTarget(f)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-[var(--card-bg-color)] transition-colors border-b border-[var(--border-color)]"
+                    >
+                      <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: f.color }} />
+                      <span className="truncate font-medium">{f.name}</span>
+                      <span className="ml-auto text-[10px] text-gray-500">{f.items.length}件</span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={cancelMoveWord}
+                  className="w-full py-2 rounded-full border border-gray-600 hover:bg-gray-800 transition-colors text-sm font-bold text-white"
+                >
+                  キャンセル
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Step 2: 移動の確認 */}
+                <div className="flex justify-center mb-4">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--theme-color)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                  </svg>
+                </div>
+                <h3 className="font-bold text-base text-center text-white mb-3">移動の確認</h3>
+                <div className="bg-[#202327] rounded-lg p-3 mb-4 text-sm">
+                  <p className="text-gray-400 mb-2">
+                    <span className="text-white font-bold">{moveConfirm.word.text}</span> を移動します
+                  </p>
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: modalData.color }} />
+                    <span className="truncate">{modalData.name}</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-[var(--theme-color)]"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
+                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: moveConfirm.targetFolder.color }} />
+                    <span className="truncate text-white font-bold">{moveConfirm.targetFolder.name}</span>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setMoveConfirm({ ...moveConfirm, targetFolder: { id: '', name: '', color: '' } })}
+                    className="flex-1 py-2 rounded-full border border-gray-600 hover:bg-gray-800 transition-colors text-sm font-bold text-white"
+                  >
+                    戻る
+                  </button>
+                  <button
+                    onClick={confirmMoveWord}
+                    className="flex-1 py-2 rounded-full bg-[var(--theme-color)] text-white font-bold hover:opacity-90 transition-opacity text-sm"
+                  >
+                    移動する
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
