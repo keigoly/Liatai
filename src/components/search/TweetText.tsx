@@ -7,11 +7,11 @@ interface TweetTextProps {
 }
 
 export const TweetText = ({ text, onHashtagClick }: TweetTextProps) => {
-    const parts = text.split(/((?:https?|ftp):\/\/[^\s\u3000]+|(?:pic\.(?:x|twitter)\.com\/[^\s\u3000]+)|[#＃][^\s\u3000]+)/gi);
+    const parts = text.split(/((?:https?|ftp):\/\/[^\s\u3000\u00A0]+|(?:pic\.(?:x|twitter)\.com\/[^\s\u3000\u00A0]+)|[#＃](?:(?!https?:\/\/|ftp:\/\/|pic\.)[^\s\u3000\u00A0#＃])+)/gi);
 
     return (
         <p className="text-[1em] text-white leading-snug whitespace-pre-wrap break-words cursor-text">
-            {parts.map((part, i) => {
+            {parts.filter(Boolean).map((part, i) => {
                 if (part.match(/^(https?|ftp):\/\//i)) {
                     return (
                         <a

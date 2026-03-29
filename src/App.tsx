@@ -13,7 +13,8 @@ import { useLanguage } from './hooks/useLanguage';
 import { REPLAY } from './constants/index';
 
 // NextGenTV ブリッジ
-import { bridgeState, setBridgeOnInit, setBridgeOnTimeUpdate, getBroadcastTimestamp } from './lib/nextgentv-bridge';
+import { bridgeState, setBridgeOnInit, setBridgeOnTimeUpdate, setBridgeOnLiveCollect, getBroadcastTimestamp } from './lib/nextgentv-bridge';
+import { useLiveCollector } from './hooks/useLiveCollector';
 
 // コンポーネント
 import { Header } from './components/Header';
@@ -49,6 +50,10 @@ function App() {
   const [broadcastTs, setBroadcastTs] = useState(0);
   // SYNC モード: ツイート更新間隔（ms）— ユーザーがUIから変更可能
   const [replayIntervalMs, setReplayIntervalMs] = useState<number>(REPLAY.TIME_UPDATE_THROTTLE_MS);
+  // ライブ収集: バックグラウンドでツイートをIndexedDBに蓄積（録画再生時に利用）
+  const [liveCollectInfo, setLiveCollectInfo] = useState<{ keyword: string; programStartMs: number; programEndMs: number }>({
+    keyword: '', programStartMs: 0, programEndMs: 0,
+  });
 
   // ========== Refs ==========
   const replayIntervalRef = useRef<number>(REPLAY.TIME_UPDATE_THROTTLE_MS);
@@ -147,6 +152,11 @@ function App() {
         console.log('[リアタイ App] INIT received:', keyword, mode);
         handleTrendClick(keyword);
       });
+      // ライブ収集: LIVE_COLLECT メッセージで番組情報を受け取りバックグラウンド収集を開始
+      setBridgeOnLiveCollect((keyword, programStartMs, programEndMs) => {
+        console.log('[リアタイ App] LIVE_COLLECT received:', keyword);
+        setLiveCollectInfo({ keyword, programStartMs, programEndMs });
+      });
       // SYNC モード: TIME_UPDATE を受信するたびに放送時刻を更新
       // 一時停止中は更新を停止してツイート表示を完全に止める
       // replayIntervalRef で最新の間隔設定をクロージャ内から参照する
@@ -189,6 +199,9 @@ function App() {
   // ========== フィルタリング ==========
   const ngFilteredTweets = tweetsState.filterTweets(tweetsState.tweets, activeTab, settings.ngSettings);
   const isSyncMode = bridgeState.mode === 'video' && broadcastTs > 0;
+
+  // ========== ライブ収集（バックグラウンド） ==========
+  useLiveCollector(liveCollectInfo);
 
   // ========== Tweet Replay（SYNC モード） ==========
   // 放送時間帯のツイートを事前取得し、映像再生に同期して1件ずつ表示する

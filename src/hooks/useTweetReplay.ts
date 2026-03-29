@@ -2,12 +2,12 @@
 // ツイートリプレイフック: 放送時間帯のツイートを事前取得し、映像再生に同期して1件ずつ表示する
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { fetchTweetsAtTime, fetchMoreTweets } from '../services/realtimeService';
+import { fetchTweetsAtTime, fetchMoreTweets, fetchCachedTweets } from '../services/realtimeService';
 import { getCachedTweets, saveCachedTweets } from '../lib/tweetCache';
 import { REPLAY } from '../constants/index';
 import type { Tweet } from '../types/index';
 
-const MAX_PRELOAD_CALLS = 500;
+const MAX_PRELOAD_CALLS = 2000;
 
 // ========== インターフェース ==========
 
@@ -151,6 +151,28 @@ export function useTweetReplay({
           return;
         }
 
+        // Step 1.5: サーバーキャッシュを確認（ライブ視聴時にサーバーが自動収集したデータ）
+        console.log('[useTweetReplay] Checking server cache...');
+        const serverResult = await fetchCachedTweets(keyword, programStartMs, programEndMs);
+        if (cancelledRef.current) return;
+
+        if (serverResult.tweets.length > 0) {
+          // サーバーキャッシュ HIT
+          const serverTweets = serverResult.tweets.sort((a, b) => a.createdAt - b.createdAt);
+          bufferRef.current = serverTweets;
+          revealIndexRef.current = -1;
+          setBufferSize(serverTweets.length);
+          setPreloadProgress(1.0);
+          setIsPreloading(false);
+
+          // IndexedDB にも保存（次回はローカルキャッシュから即座にロード）
+          await saveCachedTweets(keyword, programStartMs, programEndMs, serverTweets);
+
+          console.log('[useTweetReplay] Server cache HIT:', serverTweets.length, 'tweets');
+          return;
+        }
+        console.log('[useTweetReplay] Server cache MISS, falling back to Yahoo API...');
+
         // Step 2: Full fetch from Yahoo API (cache MISS)
         console.log('[useTweetReplay] Cache MISS, fetching from API...');
 
@@ -265,6 +287,24 @@ export function useTweetReplay({
     const targetIndex = binarySearchLastIndex(bufferRef.current, broadcastTs);
     const currentIndex = revealIndexRef.current;
 
+    // 再生位置以前のツイートがない場合（番組冒頭など）:
+    // バッファ内の最も古いツイートから MAX_VISIBLE 件を表示する（方針A）。
+    // これにより番組冒頭でも「ツイートがありません」にならず、
+    // 再生が進めば通常の時間同期表示に自然に切り替わる。
+    if (targetIndex < 0 && bufferRef.current.length > 0) {
+      // 既にフォールバック表示済み（revealIndex が FALLBACK_MARKER）なら再計算しない
+      if (currentIndex === -1) {
+        const fallbackCount = Math.min(bufferRef.current.length, REPLAY.MAX_VISIBLE);
+        const oldest = bufferRef.current.slice(0, fallbackCount);
+        const reversed = [...oldest].reverse();
+        setVisibleTweets(ngFilterFn(reversed));
+        // revealIndexRef は -1 のまま維持:
+        // broadcastTs が進んでバッファ内ツイートの時間帯に入った時点で
+        // targetIndex >= 0 となり、通常フローに自然に切り替わる
+      }
+      return;
+    }
+
     // 表示すべき新規ツイートがない場合はスキップ
     if (targetIndex <= currentIndex) return;
 
@@ -292,7 +332,7 @@ export function useTweetReplay({
         }
       }, REPLAY.DRIP_INTERVAL_MS);
     }
-  }, [broadcastTs, isReplayActive, clearDripTimer, updateVisibleFromBuffer]);
+  }, [broadcastTs, isReplayActive, clearDripTimer, updateVisibleFromBuffer, ngFilterFn]);
 
   // ========== ngFilterFn 変更時にvisibleTweetsを再フィルター ==========
   useEffect(() => {

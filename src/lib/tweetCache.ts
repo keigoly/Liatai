@@ -112,6 +112,13 @@ export async function saveCachedTweets(
     const db = await openDB();
     const cacheKey = `${keyword}|${programStartMs}`;
 
+    // 0件のキャッシュは保存しない（不良キャッシュの蓄積防止）
+    if (tweets.length === 0) {
+      db.close();
+      console.log('[tweetCache] 0件のキャッシュは保存をスキップしました');
+      return;
+    }
+
     const entry: CacheEntry = {
       cacheKey,
       tweets,

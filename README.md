@@ -1,9 +1,17 @@
 # リアタイ！ (Liatai)
 
-[![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.2.3-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](README_EN.md) | 日本語
+
+---
+
+## 🆕 v1.2.3 アップデート
+
+### 修正
+* **🔧 ツイートテキストの不要な空白を修正**: 検索キーワードのハイライト処理に起因する、ツイート本文中の不自然な空白（全角スペース・タブ文字・ゼロ幅制御文字等）を徹底的に除去しました。
+* **🔧 ハッシュタグ表示の修正**: 全角ハッシュタグ（＃）の前後にスペースが入る問題を修正しました。
 
 ---
 

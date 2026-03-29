@@ -28,12 +28,31 @@ interface JsonEntry {
 
 // ========== YahooのJSONキーワードハイライト用マーカー除去 ==========
 // displayText/displayTextBody、name 等に "START keyword END" 形式で挿入される
-const stripYahooMarkers = (text: string): string =>
-  text
-    .replace(/START ?(.*?) ?END/g, '$1')  // マーカー除去（マーカー内側のスペースのみ消費）
-    .replace(/#\s+(?=\S)/g, '#')          // "# keyword" → "#keyword"（ハッシュタグ修復）
-    .replace(/ {2,}/g, ' ')               // 連続半角スペースを1つに
-    .trim();
+// マーカー前後のスペースも消費し、CJK文脈では不要スペースを除去する
+const stripYahooMarkers = (text: string): string => {
+  // Step 1: マーカー除去（Yahoo実データはタブ区切り: \tSTART\tキーワード\tEND\t）
+  let result = text.replace(/\s?START\s?(.*?)\s?END\s?/g, (match, captured, offset, fullStr) => {
+    const charBefore = offset > 0 ? fullStr[offset - 1] : '';
+    const charAfter = (offset + match.length) < fullStr.length ? fullStr[offset + match.length] : '';
+    // ラテン文字/数字間のみスペースを保持（英単語の区切り）
+    const needsLeading = /[a-zA-Z0-9]/.test(charBefore);
+    const needsTrailing = /[a-zA-Z0-9]/.test(charAfter);
+    const content = captured.trim();
+    return (needsLeading ? ' ' : '') + content + (needsTrailing ? ' ' : '');
+  });
+  // Step 2: 不可視文字の正規化（\u3000=全角スペースを含む全Unicode空白を半角化）
+  result = result
+    .replace(/[\u200B\u200C\u200E\u200F\u2028\u2029\u2060\uFEFF]/g, '')  // ゼロ幅・制御文字除去
+    .replace(/[^\S ]/g, ' ');                                             // 全特殊空白→半角スペース
+  // Step 3: CJK文字に隣接する不要スペースを除去（\u3001〜: \u3000=全角スペースを除外）
+  result = result
+    .replace(/([\u3001-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]) +/g, '$1')
+    .replace(/ +([\u3001-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF])/g, '$1');
+  // Step 4: ハッシュタグ修復（半角・全角両対応: "# tag" → "#tag"）
+  result = result.replace(/([#＃])\s+(?=\S)/g, '$1');
+  // Step 5: 連続スペース除去
+  return result.replace(/ {2,}/g, ' ').trim();
+};
 
 // ========== 共通: JSONエントリ → Tweet 変換 ==========
 const mapEntryToTweet = (entry: JsonEntry): Tweet => {
@@ -128,7 +147,14 @@ const parseTweetElement = (el: Element): Omit<Tweet, 'isBest'> | null => {
     }
 
     let text = bodyClone.textContent || "";
-    text = text.trim();
+    text = text
+      .replace(/[\u200B\u200C\u200E\u200F\u2028\u2029\u2060\uFEFF]/g, '')  // ゼロ幅・制御文字除去
+      .replace(/[^\S ]/g, ' ')                                              // 全特殊空白→半角スペース（\u3000,\u00A0,\t,\n等すべて）
+      .replace(/([\u3001-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]) +/g, '$1')    // CJK文字直後のスペース除去
+      .replace(/ +([\u3001-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF])/g, '$1')    // CJK文字直前のスペース除去
+      .replace(/([#＃])\s+(?=\S)/g, '$1')                                   // ハッシュタグ修復
+      .replace(/ {2,}/g, ' ')                                               // 連続スペース→1つ
+      .trim();
 
     const nameEl = el.querySelector('[class*="Tweet_authorName__"]');
     const idEl = el.querySelector('[class*="Tweet_authorID__"]');
@@ -406,6 +432,39 @@ export const fetchTransitionGraph = async (keyword: string, period: GraphPeriod 
   } catch (error) {
     console.error('[Service] Fetch transition graph failed:', error);
     return empty;
+  }
+};
+
+/**
+ * NextGenTV サーバーのツイートキャッシュから録画番組のツイートを取得する。
+ * サーバーがライブ放送中に自動収集したデータを返す。
+ * not_found の場合は従来の Yahoo API フォールバックを使用する。
+ */
+export const fetchCachedTweets = async (
+  keyword: string,
+  programStartMs: number,
+  programEndMs: number,
+): Promise<{ status: string; tweets: Tweet[] }> => {
+  try {
+    const params = new URLSearchParams({
+      keyword,
+      program_start_ms: String(programStartMs),
+      program_end_ms: String(programEndMs),
+    });
+    const response = await fetch(`/api/realtime/cached-tweets?${params}`);
+    if (!response.ok) return { status: 'not_found', tweets: [] };
+    const json = await response.json();
+    return {
+      status: json.status || 'not_found',
+      tweets: (json.tweets || []).map((t: any) => ({
+        ...t,
+        // サーバーのcreatedAtはms形式なのでそのまま使用
+        createdAt: typeof t.createdAt === 'number' ? t.createdAt : Date.now(),
+      })),
+    };
+  } catch {
+    console.warn('[realtimeService] Server cache fetch failed, will use Yahoo API');
+    return { status: 'not_found', tweets: [] };
   }
 };
 

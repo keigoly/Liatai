@@ -66,6 +66,11 @@ powershell -Command "Start-Process powershell -Verb RunAs -ArgumentList '-NoProf
 - **API連携**: Yahoo の `/realtime/api/v1/pagination`（もっと見る）、`/realtime/api/v1/transition`（ポスト数グラフ）
 - **i18n**: アプリ内は `src/i18n/translations.ts`（ja/en）、Chrome Web Store は `public/_locales/`（ja/en）
 
+## 開発ルール（Claude Code 向け）
+
+- **コード変更後は必ず `npm run build` を実行し、ビルドが通ることを確認してから完了とする**
+- ビルドエラーが出た場合はその場で修正し、再度ビルドが成功するまで繰り返す
+
 ## コマンド
 
 ```bash

@@ -1,9 +1,17 @@
 # Liatai (Real-time!)
 
-[![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.2.3-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [日本語](README.md) | English
+
+---
+
+## 🆕 v1.2.3 Updates
+
+### Fixes
+* **🔧 Tweet Text Whitespace Fix**: Thoroughly removed unnatural whitespace in tweet text caused by search keyword highlighting (full-width spaces, tab characters, zero-width control characters, etc.).
+* **🔧 Hashtag Display Fix**: Fixed extra spaces appearing around full-width hashtags (＃).
 
 ---
 

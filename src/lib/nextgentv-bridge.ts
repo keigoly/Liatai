@@ -2,7 +2,8 @@
 type NextGenTVMessage =
   | { type: 'NEXTGENTV_PING' }
   | { type: 'NEXTGENTV_INIT'; mode: 'live' | 'video'; keyword: string; programStartTime?: string; programEndTime?: string; recordingStartMargin?: number }
-  | { type: 'NEXTGENTV_TIME_UPDATE'; currentTime: number; paused?: boolean };
+  | { type: 'NEXTGENTV_TIME_UPDATE'; currentTime: number; paused?: boolean }
+  | { type: 'NEXTGENTV_LIVE_COLLECT'; keyword: string; programStartTime?: string; programEndTime?: string };
 
 // NEXTGENTV_INIT 受信時のコールバック型
 type OnInitCallback = (keyword: string, mode: 'live' | 'video') => void;
@@ -13,6 +14,10 @@ let _pendingInit: { keyword: string; mode: 'live' | 'video' } | null = null;
 // TIME_UPDATE 受信時のコールバック（SYNC モード用）
 type OnTimeUpdateCallback = (currentTime: number) => void;
 let _onTimeUpdateCallback: OnTimeUpdateCallback | null = null;
+
+// LIVE_COLLECT 受信時のコールバック（ライブ視聴時のバックグラウンド収集用）
+type OnLiveCollectCallback = (keyword: string, programStartMs: number, programEndMs: number) => void;
+let _onLiveCollectCallback: OnLiveCollectCallback | null = null;
 
 // コールバック登録（App.tsx から呼ぶ）
 // 既に INIT を受信済みの場合は即座にコールバックを呼ぶ
@@ -27,6 +32,11 @@ export function setBridgeOnInit(cb: OnInitCallback) {
 // TIME_UPDATE コールバック登録（SYNC モード用）
 export function setBridgeOnTimeUpdate(cb: OnTimeUpdateCallback) {
   _onTimeUpdateCallback = cb;
+}
+
+// LIVE_COLLECT コールバック登録（ライブ視聴時のバックグラウンド収集用）
+export function setBridgeOnLiveCollect(cb: OnLiveCollectCallback) {
+  _onLiveCollectCallback = cb;
 }
 
 // 現在の再生位置に対応する放送時刻のタイムスタンプ（ミリ秒）を返す
@@ -50,12 +60,19 @@ export function getBroadcastEndTimestamp(): number {
 // 放送タイトルから検索に不要な部分を除去し、シリーズ名（作品名）を抽出する
 // 「[終]メダリスト #22【ヌマニメーション】[字]」→「メダリスト」
 // 「姫様"拷問"の時間です(第2期) #23」→「姫様"拷問"の時間です(第2期)」
+// 「【推しの子】 #35[終]」→「推しの子」
 export function cleanBroadcastKeyword(raw: string): string {
   let name = raw;
-  // 放送記号を除去（[字] [新] [終] [再] [解] [デ] 等）
+  // 放送記号を除去（[字] [新] [終] [再] [解] [デ] [SS] 等）
   name = name.replace(/\[[^\]]*\]/g, '').trim();
-  // 【番組枠名】を除去（例: 【ヌマニメーション】【アニメリコ】）
-  name = name.replace(/【[^】]*】/g, '').trim();
+  // 【番組枠名】を除去するが、番組名が【】で囲まれている場合は中身を残す
+  // 例: 「【推しの子】」→「推しの子」、「メダリスト【ヌマニメーション】」→「メダリスト」
+  // まず【】を中身のみに置換し、後で空文字になった場合はこの結果を使う
+  const withoutBrackets = name.replace(/【([^】]*)】/g, '$1').trim();
+  // 番組枠として除去（【】ごと除去）した場合
+  const withoutSlotNames = name.replace(/【[^】]*】/g, '').trim();
+  // 枠名除去後に内容が残っていればそちらを使う、残らなければ中身を展開した版を使う
+  name = withoutSlotNames || withoutBrackets;
   // #N 以降のエピソード番号を除去
   name = name.replace(/\s*#\d+.*$/, '').trim();
   // 第N話 以降を除去
@@ -119,6 +136,14 @@ export function initBridge() {
           // React のマウント前に INIT が到着した場合はバッファに保存
           _pendingInit = { keyword: cleaned, mode: data.mode };
         }
+      }
+    } else if (data.type === 'NEXTGENTV_LIVE_COLLECT') {
+      // ライブ視聴時のバックグラウンド収集: トレンド画面を維持したまま裏でツイートを蓄積する
+      const startMs = data.programStartTime ? new Date(data.programStartTime).getTime() : 0;
+      const endMs = data.programEndTime ? new Date(data.programEndTime).getTime() : 0;
+      const cleaned = cleanBroadcastKeyword(data.keyword);
+      if (cleaned && startMs > 0 && endMs > 0 && _onLiveCollectCallback) {
+        _onLiveCollectCallback(cleaned, startMs, endMs);
       }
     } else if (data.type === 'NEXTGENTV_TIME_UPDATE') {
       bridgeState.currentTime = data.currentTime;
