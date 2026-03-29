@@ -1,13 +1,13 @@
 # リアタイ！ (Liatai)
 
-[![Version](https://img.shields.io/badge/version-1.2.4-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.2.5-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](README_EN.md) | 日本語
 
 ---
 
-## 🆕 v1.2.4 アップデート
+## 🆕 v1.2.5 アップデート
 
 ### 修正
 * **#️⃣ ハッシュタグ表示修正**: 複数ハッシュタグが連結表示される問題を修正。`#タグ1#タグ2` が個別のリンクとして正しく分割されるようになりました。
@@ -16,6 +16,7 @@
 ### 改善
 * **📁 フォルダ内ワードのドラッグ&ドロップ並び替え**: 上下ボタンからグリップハンドルによるドラッグ&ドロップに変更。入れ替え時のアニメーション付き。
 * **📝 ワード3点メニュー**: フォルダ内ワードに3点メニュー（ワード変更・別のフォルダに移動・削除）を追加。移動時は専用の確認画面で安全に操作できます。
+* **🎯 データ取得の高速化**: `__NEXT_DATA__` JSONからの直接取得に対応し、従来のDOM解析よりも高速・正確にツイートを取得できるようになりました。
 * **🌍 Chrome Web Store ローカライズ**: ブラウザの言語設定に応じて、拡張機能名・説明が日本語/英語で表示されます。
 
 ---
