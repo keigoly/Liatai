@@ -20,7 +20,7 @@ export const generateHashId = (str: string): string => {
 
 /**
  * 相対時間文字列をタイムスタンプに変換する
- * @param timeStr 相対時間文字列（例: "5秒", "3分"）
+ * @param timeStr 相対時間文字列（例: "5秒", "3分", "2時間", "1日"）
  * @returns ミリ秒単位のタイムスタンプ
  */
 export const parseRelativeTime = (timeStr: string): number => {
@@ -33,7 +33,38 @@ export const parseRelativeTime = (timeStr: string): number => {
     const minMatch = timeStr.match(/(\d+)分/);
     if (minMatch) return now - (parseInt(minMatch[1], 10) * 60000);
 
+    const hourMatch = timeStr.match(/(\d+)時間/);
+    if (hourMatch) return now - (parseInt(hourMatch[1], 10) * 3600000);
+
+    const dayMatch = timeStr.match(/(\d+)日/);
+    if (dayMatch) return now - (parseInt(dayMatch[1], 10) * 86400000);
+
     return now;
+};
+
+/**
+ * ツイートのテキストが検索キーワードに関連しているか判定する
+ * キーワードを文字種（カタカナ・ひらがな・漢字・英字・数字）の境界で分割し、
+ * 有意なパーツの半数以上がテキストに含まれていれば関連ありと判定
+ */
+export const isRelevantToKeyword = (tweetText: string, keyword: string): boolean => {
+    if (!keyword) return true;
+
+    const text = tweetText.toLowerCase();
+    const kw = keyword.toLowerCase();
+
+    // 完全一致
+    if (text.includes(kw)) return true;
+
+    // キーワードを文字種境界で分割（カタカナ/ひらがな/漢字/英字/数字）
+    const parts = kw.match(/[\u4e00-\u9faf]+|[\u30a0-\u30ff]+|[\u3040-\u309f]+|[a-z]+|\d+/gi) || [];
+    const significantParts = parts.filter(p => p.length >= 2);
+
+    if (significantParts.length === 0) return true;
+
+    // 有意なパーツの半数以上が含まれていれば関連あり
+    const matchCount = significantParts.filter(part => text.includes(part.toLowerCase())).length;
+    return matchCount >= Math.ceil(significantParts.length / 2);
 };
 
 /**

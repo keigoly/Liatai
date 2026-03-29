@@ -3,7 +3,7 @@
 
 import { useLocalStorage } from './useLocalStorage';
 import { STORAGE_KEYS, DEFAULTS } from '../constants/index';
-import type { ThemeColor, BgMode, FontSize, NgSettings } from '../types/index';
+import type { ThemeColor, BgMode, FontSize, NgSettings, GraphPeriod } from '../types/index';
 
 export interface SettingsState {
     // 自動更新
@@ -24,13 +24,17 @@ export interface SettingsState {
     fontSize: FontSize;
     setFontSize: React.Dispatch<React.SetStateAction<FontSize>>;
 
-    // ベストポスト更新間隔
-    bestPostInterval: number;
-    setBestPostInterval: React.Dispatch<React.SetStateAction<number>>;
-
     // NG設定
     ngSettings: NgSettings;
     setNgSettings: (settings: NgSettings | ((prev: NgSettings) => NgSettings)) => void;
+
+    // グラフ
+    graphDefaultPeriod: GraphPeriod;
+    setGraphDefaultPeriod: React.Dispatch<React.SetStateAction<GraphPeriod>>;
+
+    // ベストポスト更新間隔
+    bestPostInterval: number;
+    setBestPostInterval: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export function useSettings(): SettingsState {
@@ -64,14 +68,19 @@ export function useSettings(): SettingsState {
         DEFAULTS.FONT_SIZE
     );
 
-    const [bestPostInterval, setBestPostInterval] = useLocalStorage<number>(
-        'sidestream-best-post-interval',
-        DEFAULTS.BEST_POST_INTERVAL
-    );
-
     const [ngSettings, setNgSettingsState] = useLocalStorage<NgSettings>(
         STORAGE_KEYS.NG_SETTINGS,
         DEFAULTS.NG_SETTINGS
+    );
+
+    const [graphDefaultPeriod, setGraphDefaultPeriod] = useLocalStorage<GraphPeriod>(
+        STORAGE_KEYS.GRAPH_DEFAULT_PERIOD,
+        DEFAULTS.GRAPH_DEFAULT_PERIOD
+    );
+
+    const [bestPostInterval, setBestPostInterval] = useLocalStorage<number>(
+        STORAGE_KEYS.BEST_POST_INTERVAL,
+        DEFAULTS.BEST_POST_INTERVAL
     );
 
     // NG設定用のラッパー関数
@@ -94,9 +103,11 @@ export function useSettings(): SettingsState {
         setBgMode,
         fontSize,
         setFontSize,
-        bestPostInterval,
-        setBestPostInterval,
         ngSettings,
         setNgSettings,
+        graphDefaultPeriod,
+        setGraphDefaultPeriod,
+        bestPostInterval,
+        setBestPostInterval,
     };
 }

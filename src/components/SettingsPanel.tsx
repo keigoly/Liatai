@@ -1,8 +1,9 @@
 // src/components/SettingsPanel.tsx
 import React, { useState, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
-import type { ThemeColor, BgMode, FontSize, NgSettings, NgWord } from '../types';
-import { STORAGE_KEYS, BEST_POST_INTERVALS } from '../constants/index';
+import type { ThemeColor, BgMode, FontSize, NgSettings, NgWord, GraphPeriod } from '../types';
+import { STORAGE_KEYS, GRAPH_PERIOD_OPTIONS, BEST_POST_INTERVAL_OPTIONS } from '../constants/index';
+import { SnsShare } from './SnsShare';
 import type { Language, TranslationKey } from '../i18n/translations';
 
 const RegExpSwitch: React.FC<{ checked: boolean; onChange: (checked: boolean) => void }> = ({ checked, onChange }) => {
@@ -67,23 +68,27 @@ interface SettingsPanelProps {
   setBgMode: (mode: BgMode) => void;
   fontSize: FontSize;
   setFontSize: (size: FontSize) => void;
-  bestPostInterval: number;
-  setBestPostInterval: (val: number) => void;
   ngSettings: NgSettings;
   setNgSettings: (settings: NgSettings) => void;
+  graphDefaultPeriod: GraphPeriod;
+  setGraphDefaultPeriod: (period: GraphPeriod) => void;
+  bestPostInterval: number;
+  setBestPostInterval: (val: number) => void;
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   language, setLanguage, t,
   trendRefreshInterval, setTrendRefreshInterval, searchRefreshInterval, setSearchRefreshInterval,
   themeColor, setThemeColor, bgMode, setBgMode, fontSize, setFontSize,
-  bestPostInterval, setBestPostInterval,
-  ngSettings, setNgSettings
+  ngSettings, setNgSettings,
+  graphDefaultPeriod, setGraphDefaultPeriod,
+  bestPostInterval, setBestPostInterval
 }) => {
   const [isLanguageSettingOpen, setIsLanguageSettingOpen] = useState(false);
   const [isTrendSettingOpen, setIsTrendSettingOpen] = useState(false);
   const [isSearchSettingOpen, setIsSearchSettingOpen] = useState(false);
-  const [isBestPostSettingOpen, setIsBestPostSettingOpen] = useState(false);
+  const [isGraphPeriodOpen, setIsGraphPeriodOpen] = useState(false);
+  const [isBestPostOpen, setIsBestPostOpen] = useState(false);
   const [isNgSettingOpen, setIsNgSettingOpen] = useState(false);
   const [isDesignSettingOpen, setIsDesignSettingOpen] = useState(false);
   const [isStorageSettingOpen, setIsStorageSettingOpen] = useState(false);
@@ -436,6 +441,40 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
         </SettingsAccordion>
 
+        {/* 最新のアップデート情報（GitHub連動） */}
+        <SettingsAccordion
+          title={t('latestUpdate')}
+          currentValueLabel={releaseInfo ? releaseInfo.tag_name : '読み込み中...'}
+          currentLabelText={t('currentLabel')}
+          isOpen={isUpdateInfoOpen}
+          onToggle={() => setIsUpdateInfoOpen(!isUpdateInfoOpen)}
+          isNew={isNewRelease}
+        >
+          {releaseInfo ? (
+            <div className="p-4 bg-[var(--card-bg-color)]">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-bold text-white">{releaseInfo.name || releaseInfo.tag_name}</span>
+                <span className="text-xs text-gray-500">{new Date(releaseInfo.published_at).toLocaleDateString()}</span>
+              </div>
+              <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[200px] overflow-y-auto mb-4 p-2 bg-[var(--bg-color)] rounded border border-[var(--border-color)]">
+                {releaseInfo.body || t('noUpdateDetails')}
+              </div>
+              <a
+                href={releaseInfo.html_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center py-2 text-sm font-bold text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors border border-gray-600"
+              >
+                {t('viewOnGitHub')}
+              </a>
+            </div>
+          ) : (
+            <div className="p-4 flex justify-center">
+              <div className="animate-spin h-5 w-5 border-2 border-[var(--theme-color)] rounded-full border-t-transparent" />
+            </div>
+          )}
+        </SettingsAccordion>
+
         <SettingsAccordion
           title={t('trendAutoRefreshInterval')}
           currentValueLabel={trendIntervalOptions.find(o => o.value === trendRefreshInterval)?.label || `${trendRefreshInterval / 60000}${language === 'ja' ? '分' : ' min'}`}
@@ -476,62 +515,52 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           <p className="text-xs text-gray-500 mt-3 px-1">{t('autoRefreshNote')}</p>
         </SettingsAccordion>
 
+        {/* グラフ表示期間のデフォルト設定 */}
         <SettingsAccordion
-          title={language === 'ja' ? 'ベストポスト更新間隔' : 'Best Post Refresh Interval'}
-          currentValueLabel={`${bestPostInterval / 60000}${language === 'ja' ? '分' : ' min'}`}
+          title="ポスト数グラフの表示期間"
+          currentValueLabel={GRAPH_PERIOD_OPTIONS.find(o => o.value === graphDefaultPeriod)?.label || '6時間'}
           currentLabelText={t('currentLabel')}
-          isOpen={isBestPostSettingOpen}
-          onToggle={() => setIsBestPostSettingOpen(!isBestPostSettingOpen)}
+          isOpen={isGraphPeriodOpen}
+          onToggle={() => setIsGraphPeriodOpen(!isGraphPeriodOpen)}
         >
           <div className="space-y-2">
-            {BEST_POST_INTERVALS.map((minutes) => {
-              const value = minutes * 60 * 1000;
-              const label = `${minutes}${language === 'ja' ? '分' : ' min'}`;
-              return (
-                <label key={`bestpost-${value}`} className="flex items-center justify-between p-3 rounded-lg cursor-pointer border border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors">
-                  <div className="flex items-center gap-3">
-                    <input type="radio" name="bestPostInterval" value={value} checked={bestPostInterval === value} onChange={() => setBestPostInterval(value)} className="accent-[var(--theme-color)] w-4 h-4" />
-                    <span className="text-sm text-white">{label}</span>
-                  </div>
-                </label>
-              );
-            })}
+            {GRAPH_PERIOD_OPTIONS.map((option) => (
+              <label key={option.value} className="flex items-center justify-between p-3 rounded-lg cursor-pointer border border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors">
+                <div className="flex items-center gap-3">
+                  <input type="radio" name="graphDefaultPeriod" value={option.value} checked={graphDefaultPeriod === option.value} onChange={() => setGraphDefaultPeriod(option.value)} className="accent-[var(--theme-color)] w-4 h-4" />
+                  <span className="text-sm text-white">{option.label}</span>
+                </div>
+              </label>
+            ))}
           </div>
-          <p className="text-xs text-gray-500 mt-3 px-1">{language === 'ja' ? 'ベストポストが更新される最小間隔です。' : 'Minimum interval between best post updates.'}</p>
+          <p className="text-xs text-gray-500 mt-3 px-1">検索時にポスト数グラフに表示するデフォルトの期間を選択します。</p>
         </SettingsAccordion>
 
-        {/* ★追加: 最新のアップデート情報（GitHub連動） */}
-        {releaseInfo && (
-          <SettingsAccordion
-            title={t('latestUpdate')}
-            currentValueLabel={releaseInfo.tag_name}
-            currentLabelText={t('currentLabel')}
-            isOpen={isUpdateInfoOpen}
-            onToggle={() => setIsUpdateInfoOpen(!isUpdateInfoOpen)}
-            isNew={isNewRelease}
-          >
-            <div className="p-4 bg-[var(--card-bg-color)]">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-bold text-white">{releaseInfo.name || releaseInfo.tag_name}</span>
-                <span className="text-xs text-gray-500">{new Date(releaseInfo.published_at).toLocaleDateString()}</span>
-              </div>
-              <div className="text-sm text-gray-300 whitespace-pre-wrap max-h-[200px] overflow-y-auto mb-4 p-2 bg-[var(--bg-color)] rounded border border-[var(--border-color)]">
-                {releaseInfo.body || t('noUpdateDetails')}
-              </div>
-              <a
-                href={releaseInfo.html_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full text-center py-2 text-sm font-bold text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors border border-gray-600"
-              >
-                {t('viewOnGitHub')}
-              </a>
-            </div>
-          </SettingsAccordion>
-        )}
+        {/* ベストポスト更新間隔 */}
+        <SettingsAccordion
+          title={language === 'ja' ? 'ベストポスト更新間隔' : 'Best Post Refresh Interval'}
+          currentValueLabel={BEST_POST_INTERVAL_OPTIONS.find(o => o.value === bestPostInterval)?.label || `${bestPostInterval / 60000}${language === 'ja' ? '分' : ' min'}`}
+          currentLabelText={t('currentLabel')}
+          isOpen={isBestPostOpen}
+          onToggle={() => setIsBestPostOpen(!isBestPostOpen)}
+        >
+          <div className="space-y-2">
+            {BEST_POST_INTERVAL_OPTIONS.map((option, idx) => (
+              <label key={`best-${option.value}-${idx}`} className="flex items-center justify-between p-3 rounded-lg cursor-pointer border border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors">
+                <div className="flex items-center gap-3">
+                  <input type="radio" name="bestPostInterval" value={option.value} checked={bestPostInterval === option.value} onChange={() => setBestPostInterval(option.value)} className="accent-[var(--theme-color)] w-4 h-4" />
+                  <span className="text-sm text-white">{option.label}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-gray-500 mt-3 px-1">{language === 'ja' ? 'ベストポストが更新される間隔です。短くすると頻繁に新しいベストポストが表示されます。' : 'How often the best post updates. Shorter intervals show new best posts more frequently.'}</p>
+        </SettingsAccordion>
 
         <SettingsAccordion
           title={t('ngSettings')}
+          currentValueLabel={`${ngSettings.comments.length + ngSettings.userIds.length}件`}
+          currentLabelText={t('currentLabel')}
           isOpen={isNgSettingOpen}
           onToggle={() => setIsNgSettingOpen(!isNgSettingOpen)}
         >
@@ -753,7 +782,24 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <svg className="text-gray-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
             </a>
 
-            {/* 4. 開発者のオフィシャルサイト */}
+            {/* 4. 開発者が製作した拡張機能一覧 */}
+            <a
+              href="https://keigoly.jp/apps"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-4 hover:bg-[var(--bg-color)] transition-colors group"
+            >
+              <div className="p-2 rounded-full bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors overflow-hidden">
+                <img src="/chrome-webstore-icon.png" alt="" width="20" height="20" className="object-contain" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-bold text-white">開発者が製作した拡張機能一覧</div>
+                <div className="text-xs text-gray-500">keigoly.jp/apps</div>
+              </div>
+              <svg className="text-gray-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
+            </a>
+
+            {/* 5. 開発者のオフィシャルサイト */}
             <a
               href="https://keigoly.jp/"
               target="_blank"
@@ -773,6 +819,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
         </SettingsAccordion>
 
+        <SnsShare />
       </div>
 
       {renderNgEditorModal()}

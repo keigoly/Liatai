@@ -2,8 +2,8 @@
 // ツイート取得・管理フック
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { fetchRealtimeTweets } from '../services/realtimeService';
-import { sortNewestFirst } from '../utils/helpers';
+import { fetchRealtimeTweets, fetchMoreTweets } from '../services/realtimeService';
+import { sortNewestFirst, isRelevantToKeyword } from '../utils/helpers';
 import { DEFAULTS } from '../constants/index';
 import type { Tweet, NgSettings } from '../types/index';
 
@@ -13,6 +13,7 @@ export interface UseTweetsState {
     isTweetLoading: boolean;
     isLoadingMore: boolean;
     hasMoreTweets: boolean;
+    bestPostUpdatedAt: number;
     fullRefreshKey: number;
     loadTweets: (isBackground?: boolean, targetKeyword?: string) => Promise<void>;
     loadMoreTweets: () => Promise<void>;
@@ -24,29 +25,28 @@ export interface UseTweetsState {
 interface UseTweetsProps {
     searchKeyword: string;
     isScrolled: boolean;
-    bestPostInterval: number;
     scrollContainerRef: React.RefObject<HTMLDivElement | null>;
     setIsScrolled: (value: boolean) => void;
+    bestPostInterval: number;
 }
 
 export function useTweets({
     searchKeyword,
     isScrolled,
-    bestPostInterval,
     scrollContainerRef,
     setIsScrolled,
+    bestPostInterval,
 }: UseTweetsProps): UseTweetsState {
     const [tweets, setTweets] = useState<Tweet[]>([]);
     const [pendingTweets, setPendingTweets] = useState<Tweet[]>([]);
     const [isTweetLoading, setIsTweetLoading] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMoreTweets, setHasMoreTweets] = useState(true);
+    const [bestPostUpdatedAt, setBestPostUpdatedAt] = useState<number>(0);
     const [fullRefreshKey, setFullRefreshKey] = useState(0);
     const lastBestPostTime = useRef<number>(0);
-    const bestPostUpdatedAt = useRef<number>(0);
     const currentPage = useRef<number>(1); // 現在のページ（1 = 最初の20件）
-
-    // ツイートIDセットをrefで追跡（useCallback内でtweets依存を避けるため）
+    // tweets の最新IDセットを ref で追跡（setPendingTweets 内での stale closure 回避）
     const tweetIdsRef = useRef<Set<string>>(new Set());
     useEffect(() => {
         tweetIdsRef.current = new Set(tweets.map(t => t.id));
@@ -59,73 +59,72 @@ export function useTweets({
 
         try {
             const { best, timeline } = await fetchRealtimeTweets(query);
-            const sortedTimeline = sortNewestFirst([...timeline]);
+            const relevantTimeline = timeline.filter(t => isRelevantToKeyword(t.text, query));
+            const sortedTimeline = sortNewestFirst([...relevantTimeline]);
 
             const now = Date.now();
-            let effectiveBest: Tweet | null = null;
-
-            // ベストポスト更新間隔ロジック
-            if (best && (now - lastBestPostTime.current < bestPostInterval)) {
-                // 間隔内なので抑制
-                effectiveBest = null;
-            } else if (best) {
-                effectiveBest = best;
-                lastBestPostTime.current = now;
-                bestPostUpdatedAt.current = now;
-            }
+            let effectiveBest = best;
 
             if (isBackground) {
-                if (effectiveBest) {
-                    // ベストポスト更新あり: 新しいbestを先頭に追加し、旧bestのisBestフラグを外す
-                    const newBest = effectiveBest;
-                    if (isScrolled) {
-                        setPendingTweets(prevPending => {
-                            const currentIds = tweetIdsRef.current;
-                            const pendingIds = new Set(prevPending.map(t => t.id));
-                            const newTimeline = sortedTimeline.filter(t => !currentIds.has(t.id) && !pendingIds.has(t.id));
-                            const incoming = newBest.id && !currentIds.has(newBest.id) && !pendingIds.has(newBest.id)
-                                ? [newBest, ...newTimeline]
-                                : newTimeline;
-                            if (incoming.length === 0) return prevPending;
-                            return sortNewestFirst([...incoming, ...prevPending]);
-                        });
-                    } else {
-                        setTweets(prev => {
-                            // 旧bestのisBestフラグを外す
-                            const updated = prev.map(t => t.isBest ? { ...t, isBest: false } : t);
-                            const existingIds = new Set(updated.map(t => t.id));
-                            const newTimeline = sortedTimeline.filter(t => !existingIds.has(t.id));
-                            const incoming = newBest.id && !existingIds.has(newBest.id)
-                                ? [newBest, ...newTimeline, ...updated]
-                                : [...newTimeline, ...updated];
-                            return incoming.slice(0, DEFAULTS.MAX_TWEETS);
-                        });
-                        setPendingTweets([]);
-                    }
-                } else {
-                    // ベストポスト更新なし: タイムラインのみインクリメンタル追加
-                    if (isScrolled) {
-                        setPendingTweets(prevPending => {
-                            const currentIds = tweetIdsRef.current;
-                            const pendingIds = new Set(prevPending.map(t => t.id));
-                            const uniqueNew = sortedTimeline.filter(t => !currentIds.has(t.id) && !pendingIds.has(t.id));
-                            if (uniqueNew.length === 0) return prevPending;
-                            return sortNewestFirst([...uniqueNew, ...prevPending]);
-                        });
-                    } else {
-                        setTweets(prev => {
-                            const existingIds = new Set(prev.map(t => t.id));
-                            const uniqueNew = sortedTimeline.filter(t => !existingIds.has(t.id));
-                            if (uniqueNew.length === 0) return prev;
-                            const combined = [...uniqueNew, ...prev];
-                            return combined.slice(0, DEFAULTS.MAX_TWEETS);
-                        });
-                        setPendingTweets([]);
-                    }
+                if (best && (now - lastBestPostTime.current < bestPostInterval)) {
+                    effectiveBest = null;
+                } else if (best) {
+                    lastBestPostTime.current = now;
+                    setBestPostUpdatedAt(now); // グラフ更新トリガー
                 }
             } else {
-                // 初回ロード: fullRefreshKeyを更新してアニメーション発火
-                setFullRefreshKey(prev => prev + 1);
+                if (best) lastBestPostTime.current = now;
+            }
+
+            if (isBackground && effectiveBest) {
+                // ベストポスト更新: リロードせず、他の新着と一緒に上から自然に流す
+                const newBest = effectiveBest;
+                const allNew = [newBest, ...sortedTimeline];
+
+                if (isScrolled) {
+                    setPendingTweets(prevPending => {
+                        const pendingIds = new Set(prevPending.map(t => t.id));
+                        const uniqueNew = allNew.filter(t => !tweetIdsRef.current.has(t.id) && !pendingIds.has(t.id));
+                        if (uniqueNew.length === 0) return prevPending;
+                        return sortNewestFirst([...uniqueNew, ...prevPending]);
+                    });
+                } else {
+                    setTweets(prev => {
+                        // 旧ベストポストの isBest フラグを解除 & 新ベストと同IDのツイートを除外
+                        const cleaned = prev
+                            .filter(t => t.id !== newBest.id)
+                            .map(t => t.isBest ? { ...t, isBest: false } : t);
+                        const existingIds = new Set(cleaned.map(t => t.id));
+                        const newTimeline = sortedTimeline.filter(t => !existingIds.has(t.id) && t.id !== newBest.id);
+                        const combined = [newBest, ...newTimeline, ...cleaned];
+                        return combined.slice(0, DEFAULTS.MAX_TWEETS);
+                    });
+                    setPendingTweets([]);
+                }
+            } else if (isBackground) {
+                // 通常のバックグラウンド更新: 新着ツイートのみ追加
+                const allNew = sortedTimeline;
+
+                if (isScrolled) {
+                    setPendingTweets(prevPending => {
+                        const pendingIds = new Set(prevPending.map(t => t.id));
+                        const uniqueNew = allNew.filter(t => !tweetIdsRef.current.has(t.id) && !pendingIds.has(t.id));
+                        if (uniqueNew.length === 0) return prevPending;
+                        return sortNewestFirst([...uniqueNew, ...prevPending]);
+                    });
+                } else {
+                    setTweets(prev => {
+                        const existingIds = new Set(prev.map(t => t.id));
+                        const uniqueNew = allNew.filter(t => !existingIds.has(t.id));
+                        if (uniqueNew.length === 0) return prev;
+                        const combined = [...uniqueNew, ...prev];
+                        return combined.slice(0, DEFAULTS.MAX_TWEETS);
+                    });
+                    setPendingTweets([]);
+                }
+            } else {
+                // 初回ロード: key変更でコンテナ再マウント → 全ツイート同時表示 + フェードインアニメーション
+                setFullRefreshKey(k => k + 1);
                 const initialList = effectiveBest ? [effectiveBest, ...sortedTimeline] : sortedTimeline;
                 setTweets(initialList.slice(0, DEFAULTS.MAX_TWEETS));
                 setPendingTweets([]);
@@ -200,41 +199,31 @@ export function useTweets({
         setIsLoadingMore(true);
 
         try {
-            // 現在表示されているリストの最後（最古）のポストのIDを取得
-            const oldestTweet = tweets[tweets.length - 1];
+            // ベストポストを除いた通常ツイートから最古のIDを取得
+            const normalTweets = tweets.filter(t => !t.isBest);
+            const oldestTweet = normalTweets[normalTweets.length - 1];
             const oldestTweetId = oldestTweet?.id || '';
 
             if (!oldestTweetId) {
-                console.log('[loadMoreTweets] No oldest tweet ID found');
                 setHasMoreTweets(false);
                 setIsLoadingMore(false);
                 return;
             }
 
-            console.log('[loadMoreTweets] Loading more with oldestTweetId:', oldestTweetId, 'pageIndex:', currentPage.current);
-
-            // JSON APIを使用して追加のポストを取得
-            const { fetchMoreTweets } = await import('../services/realtimeService');
-            const newTweets = await fetchMoreTweets(searchKeyword, oldestTweetId, currentPage.current);
-
-            console.log('[loadMoreTweets] Received:', newTweets.length, 'items');
+            const newTweets = await fetchMoreTweets(searchKeyword, oldestTweetId, 0);
 
             if (newTweets.length === 0) {
-                console.log('[loadMoreTweets] No more tweets, setting hasMoreTweets to false');
                 setHasMoreTweets(false);
             } else {
                 setTweets(prev => {
                     const existingIds = new Set(prev.map(t => t.id));
                     const uniqueNew = newTweets.filter(t => !existingIds.has(t.id));
-                    console.log('[loadMoreTweets] Unique new tweets:', uniqueNew.length);
                     if (uniqueNew.length === 0) {
-                        // 重複ばかりの場合、次のページを試みる
-                        currentPage.current += 1;
+                        setHasMoreTweets(false);
                         return prev;
                     }
                     return [...prev, ...uniqueNew];
                 });
-                currentPage.current += 1;
             }
         } catch (err) {
             console.error('Failed to load more tweets:', err);
@@ -249,6 +238,7 @@ export function useTweets({
         isTweetLoading,
         isLoadingMore,
         hasMoreTweets,
+        bestPostUpdatedAt,
         fullRefreshKey,
         loadTweets,
         loadMoreTweets,

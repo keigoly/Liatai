@@ -1,6 +1,5 @@
 // src/App.tsx
 // メインアプリケーションコンポーネント
-// リファクタリング済み: 500行 → 約200行
 
 import { useState, useEffect, useRef } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
@@ -16,6 +15,7 @@ import { Header } from './components/Header';
 import { SettingsPanel } from './components/SettingsPanel';
 import { RegisteredPanel } from './components/RegisteredPanel';
 import { TweetCard } from './components/search/TweetCard';
+import { TweetGraph } from './components/search/TweetGraph';
 import { TrendList } from './components/home/TrendList';
 
 function App() {
@@ -50,9 +50,9 @@ function App() {
   const tweetsState = useTweets({
     searchKeyword,
     isScrolled,
-    bestPostInterval: settings.bestPostInterval,
     scrollContainerRef,
     setIsScrolled,
+    bestPostInterval: settings.bestPostInterval,
   });
 
   // ========== イベントハンドラ ==========
@@ -117,8 +117,18 @@ function App() {
 
   // ========== Effects ==========
   useEffect(() => {
-    loadTrends();
-    if (searchKeyword) tweetsState.loadTweets(false, searchKeyword);
+    const params = new URLSearchParams(window.location.search);
+    const initialQuery = params.get('q');
+    if (initialQuery) {
+      setInputValue(initialQuery);
+      setSearchKeyword(initialQuery);
+      setCurrentView('search');
+      searchHistoryState.addToHistory(initialQuery);
+      tweetsState.loadTweets(false, initialQuery);
+    } else {
+      loadTrends();
+      if (searchKeyword) tweetsState.loadTweets(false, searchKeyword);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -137,7 +147,7 @@ function App() {
       if (intervalRef.current) window.clearInterval(intervalRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.autoRefresh, searchKeyword, currentView, homeTab, settings.trendRefreshInterval, settings.searchRefreshInterval, settings.bestPostInterval, isScrolled]);
+  }, [settings.autoRefresh, searchKeyword, currentView, homeTab, settings.trendRefreshInterval, settings.searchRefreshInterval, isScrolled, tweetsState.tweets]);
 
   // ========== フィルタリング ==========
   const filteredTweets = tweetsState.filterTweets(tweetsState.tweets, activeTab, settings.ngSettings);
@@ -205,10 +215,12 @@ function App() {
                   setBgMode={settings.setBgMode}
                   fontSize={settings.fontSize}
                   setFontSize={settings.setFontSize}
-                  bestPostInterval={settings.bestPostInterval}
-                  setBestPostInterval={settings.setBestPostInterval}
                   ngSettings={settings.ngSettings}
                   setNgSettings={settings.setNgSettings}
+                  graphDefaultPeriod={settings.graphDefaultPeriod}
+                  setGraphDefaultPeriod={settings.setGraphDefaultPeriod}
+                  bestPostInterval={settings.bestPostInterval}
+                  setBestPostInterval={settings.setBestPostInterval}
                 />
               )}
             </div>
@@ -216,6 +228,9 @@ function App() {
 
           {currentView === 'search' && (
             <div key="search-view" className="animate-in fade-in duration-300">
+              {/* ポスト数グラフ（開閉式） */}
+              {searchKeyword && <TweetGraph keyword={searchKeyword} defaultPeriod={settings.graphDefaultPeriod} refreshTrigger={tweetsState.bestPostUpdatedAt} />}
+
               {tweetsState.isTweetLoading && (
                 <div className="flex justify-center py-10"><div className="animate-spin h-6 w-6 border-4 border-[var(--theme-color)] rounded-full border-t-transparent"></div></div>
               )}
@@ -235,18 +250,12 @@ function App() {
               {!tweetsState.isTweetLoading && filteredTweets.length === 0 && (
                 <div className="text-center py-20 text-gray-500 text-sm">ツイートが見つかりませんでした。</div>
               )}
-              {/* 
-                =====================================
-                「もっと見る」ボタン - 将来の実装のため保留
-                JSON API (/realtime/api/v1/pagination) を使用した実装が必要
-                useTweets.ts の loadMoreTweets と realtimeService.ts の fetchMoreTweets を使用
-                =====================================
               {!tweetsState.isTweetLoading && filteredTweets.length > 0 && tweetsState.hasMoreTweets && (
                 <div className="flex justify-center py-6">
                   <button
                     onClick={tweetsState.loadMoreTweets}
                     disabled={tweetsState.isLoadingMore}
-                    className="px-16 py-3 border border-[rgb(47,51,54)] rounded-sm text-[rgb(113,118,123)] text-[15px] font-medium hover:bg-[rgba(255,255,255,0.03)] transition-colors disabled:opacity-50"
+                    className="px-16 py-3 border border-[var(--border-color)] rounded-sm text-[#8b98a5] text-[15px] font-medium hover:bg-[var(--card-bg-color)] transition-colors disabled:opacity-50"
                   >
                     {tweetsState.isLoadingMore ? (
                       <div className="flex items-center justify-center gap-2">
@@ -262,7 +271,6 @@ function App() {
               {!tweetsState.hasMoreTweets && filteredTweets.length > 0 && (
                 <div className="text-center py-6 text-gray-500 text-xs">これ以上のポストはありません</div>
               )}
-              */}
             </div>
           )}
         </main>

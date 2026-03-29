@@ -1,7 +1,7 @@
 // src/constants/index.ts
 // アプリケーション全体で使用する定数を集約
 
-import type { ThemeColor, FontSize, NgSettings } from '../types/index';
+import type { ThemeColor, FontSize, NgSettings, GraphPeriod } from '../types/index';
 
 // ========== テーマカラー ==========
 export const THEME_COLORS: ThemeColor[] = [
@@ -47,6 +47,22 @@ export const FOLDER_COLORS = [
     '#a855f7', // Fuchsia
 ] as const;
 
+// ========== ベストポスト更新間隔 ==========
+export const BEST_POST_INTERVAL_OPTIONS = [
+    { label: '1分', value: 60000 },
+    { label: '5分', value: 300000 },
+    { label: '10分', value: 600000 },
+    { label: '30分', value: 1800000 },
+] as const;
+
+// ========== グラフデフォルト期間 ==========
+export const GRAPH_PERIOD_OPTIONS: { label: string; value: GraphPeriod }[] = [
+    { label: '6時間', value: '6h' },
+    { label: '24時間', value: '24h' },
+    { label: '7日', value: '7d' },
+    { label: '30日', value: '30d' },
+];
+
 // ========== 背景モード ==========
 export const BG_MODE_OPTIONS = [
     { mode: 'default' as const, label: 'デフォルト', color: '#15202b' },
@@ -68,6 +84,8 @@ export const STORAGE_KEYS = {
     REGISTERED_WORDS: 'sidestream_registered_words',
     FOLDERS: 'sidestream_folders',
     REGISTERED_PANEL_TAB: 'sidestream_registered_panel_tab',
+    GRAPH_DEFAULT_PERIOD: 'sidestream_settings_graphDefaultPeriod',
+    BEST_POST_INTERVAL: 'sidestream_settings_bestPostInterval',
 } as const;
 
 // ========== デフォルト値 ==========
@@ -84,6 +102,7 @@ export const DEFAULTS: {
     SEARCH_HISTORY: string[];
     MAX_TWEETS: number;
     MAX_HISTORY: number;
+    GRAPH_DEFAULT_PERIOD: GraphPeriod;
     BEST_POST_INTERVAL: number;
 } = {
     LANGUAGE: 'ja',
@@ -97,11 +116,9 @@ export const DEFAULTS: {
     SEARCH_HISTORY: [],
     MAX_TWEETS: 50,
     MAX_HISTORY: 20,
-    BEST_POST_INTERVAL: 5 * 60 * 1000,
+    GRAPH_DEFAULT_PERIOD: '6h',
+    BEST_POST_INTERVAL: 300000, // 5分
 };
-
-// ========== ベストポスト更新間隔オプション（分単位） ==========
-export const BEST_POST_INTERVALS = [1, 5, 10, 30] as const;
 
 // ========== ランクカラー ==========
 export const RANK_COLORS = {
