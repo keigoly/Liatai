@@ -9,6 +9,15 @@
 
 ## 🆕 v1.2.5 Updates
 
+### Improvements
+* **🎯 Faster Data Fetching**: Now fetches tweets directly from `__NEXT_DATA__` JSON for faster and more accurate results compared to DOM parsing.
+* **📊 Post Count Graph**: Displays post count trends in search results. Supports 6h/24h/7d/30d period switching.
+* **📄 Load More**: You can now scroll back through older posts.
+
+---
+
+## 🆕 v1.2.4 Updates
+
 ### Fixes
 * **#️⃣ Hashtag Display Fix**: Fixed an issue where multiple hashtags were concatenated. `#tag1#tag2` is now correctly split into individual links.
 * **🔗 Hashtag + URL Separation**: Fixed an issue where a URL immediately following a hashtag (`#taghttps://...`) was merged into the hashtag.
@@ -16,7 +25,6 @@
 ### Improvements
 * **📁 Drag & Drop Word Reordering**: Replaced up/down buttons with grip handle drag & drop in folder word list, with a swap animation.
 * **📝 Word 3-dot Menu**: Added a context menu (Edit word, Move to another folder, Delete) to folder words. Moving uses a dedicated confirmation screen for safe operation.
-* **🎯 Faster Data Fetching**: Now fetches tweets directly from `__NEXT_DATA__` JSON for faster and more accurate results compared to DOM parsing.
 * **🌍 Chrome Web Store Localization**: Extension name and description are displayed in Japanese or English based on your browser's language settings.
 
 ---
