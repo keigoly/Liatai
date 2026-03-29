@@ -15,7 +15,7 @@
 
 ### Improvements
 * **📁 Drag & Drop Word Reordering**: Replaced up/down buttons with grip handle drag & drop in folder word list, with a swap animation.
-* **📝 Word 3-dot Menu**: Added a context menu (Edit word, Move to another folder, Delete) to folder words.
+* **📝 Word 3-dot Menu**: Added a context menu (Edit word, Move to another folder, Delete) to folder words. Moving uses a dedicated confirmation screen for safe operation.
 * **🌍 Chrome Web Store Localization**: Extension name and description are displayed in Japanese or English based on your browser's language settings.
 
 ---

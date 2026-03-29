@@ -44,7 +44,7 @@ Switch from side panel to a popup window. Your search state carries over to the 
 This extension stores settings only within your browser and never sends personal data to external servers.
 
 - Changelog
-v1.2.4: Fixed hashtag concatenation display bug, drag & drop word reordering in folders, added word context menu (edit, move, delete)
+v1.2.4: Fixed hashtag concatenation display bug, drag & drop word reordering in folders, added word context menu (edit, move, delete) with move confirmation screen
 v1.2.3: Thoroughly fixed unwanted whitespace in tweet text (removed tab characters, full-width spaces, and zero-width control characters from search highlighting), fixed spaces around full-width hashtags
 v1.2.2: Search animation improvement, natural Best Post flow, media thumbnail display fix
 v1.2.1: Best Post refresh interval setting (1/5/10/30 min), natural Best Post flow with timeline, auto graph refresh on Best Post update
