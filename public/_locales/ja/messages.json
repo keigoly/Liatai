@@ -1,0 +1,11 @@
+{
+  "appName": {
+    "message": "リアタイ！"
+  },
+  "appDescription": {
+    "message": "実況のお供に。Xのリアルタイム検索をサイドパネルで表示するChrome拡張機能です。"
+  },
+  "actionTitle": {
+    "message": "リアタイ！を開く"
+  }
+}

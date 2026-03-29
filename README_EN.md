@@ -1,9 +1,22 @@
 # Liatai (Real-time!)
 
-[![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.2.4-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [日本語](README.md) | English
+
+---
+
+## 🆕 v1.2.4 Updates
+
+### Fixes
+* **#️⃣ Hashtag Display Fix**: Fixed an issue where multiple hashtags were concatenated. `#tag1#tag2` is now correctly split into individual links.
+* **🔗 Hashtag + URL Separation**: Fixed an issue where a URL immediately following a hashtag (`#taghttps://...`) was merged into the hashtag.
+
+### Improvements
+* **📁 Drag & Drop Word Reordering**: Replaced up/down buttons with grip handle drag & drop in folder word list, with a swap animation.
+* **📝 Word 3-dot Menu**: Added a context menu (Edit word, Move to another folder, Delete) to folder words.
+* **🌍 Chrome Web Store Localization**: Extension name and description are displayed in Japanese or English based on your browser's language settings.
 
 ---
 

@@ -1,9 +1,22 @@
 # リアタイ！ (Liatai)
 
-[![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.2.4-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](README_EN.md) | 日本語
+
+---
+
+## 🆕 v1.2.4 アップデート
+
+### 修正
+* **#️⃣ ハッシュタグ表示修正**: 複数ハッシュタグが連結表示される問題を修正。`#タグ1#タグ2` が個別のリンクとして正しく分割されるようになりました。
+* **🔗 ハッシュタグ+URL分離**: ハッシュタグ直後にURLが続く場合（`#タグhttps://...`）も正しく分離されるようになりました。
+
+### 改善
+* **📁 フォルダ内ワードのドラッグ&ドロップ並び替え**: 上下ボタンからグリップハンドルによるドラッグ&ドロップに変更。入れ替え時のアニメーション付き。
+* **📝 ワード3点メニュー**: フォルダ内ワードに3点メニュー（ワード変更・別のフォルダに移動・削除）を追加。
+* **🌍 Chrome Web Store ローカライズ**: ブラウザの言語設定に応じて、拡張機能名・説明が日本語/英語で表示されます。
 
 ---
 
