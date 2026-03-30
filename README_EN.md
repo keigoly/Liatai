@@ -1,35 +1,60 @@
 # Liatai (Real-time!)
 
-[![Version](https://img.shields.io/badge/version-1.2.3-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.2.7-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [日本語](README.md) | English
 
 ---
 
-## 🆕 v1.2.3 Updates
+## 🆕 v1.2.7 Updates
+
+### Improvements
+* **📁 Show All Folder Words**: Removed the 10-item limit. 11+ items are now scrollable with a bottom gradient indicator.
+* **🔄 Up/Down Button Reordering**: Replaced drag & drop with reliable up/down buttons for word reordering.
+* **➕ New Words Added to Bottom**: Newly added words now appear at the end of the list.
+* **📝 Menu Position Fix**: Context menu opens upward for items near the bottom of the list.
+* **🔧 v1.2.6 Build Fix**: Correctly applies all improvements that were missing in v1.2.6.
+
+---
+
+## 🆕 v1.2.5 Updates
+
+### Improvements
+* **🎯 Faster Data Fetching**: Now fetches tweets directly from `__NEXT_DATA__` JSON for faster and more accurate results compared to DOM parsing.
+* **📊 Post Count Graph**: Displays post count trends in search results. Supports 6h/24h/7d/30d period switching.
+* **📄 Load More**: You can now scroll back through older posts.
+
+---
+
+## 🆕 v1.2.4 Updates
 
 ### Fixes
-* **🔧 Tweet Text Whitespace Fix**: Thoroughly removed unnatural whitespace in tweet text caused by search keyword highlighting (full-width spaces, tab characters, zero-width control characters, etc.).
-* **🔧 Hashtag Display Fix**: Fixed extra spaces appearing around full-width hashtags (＃).
+* **#️⃣ Hashtag Display Fix**: Fixed an issue where multiple hashtags were concatenated. `#tag1#tag2` is now correctly split into individual links.
+* **🔗 Hashtag + URL Separation**: Fixed an issue where a URL immediately following a hashtag (`#taghttps://...`) was merged into the hashtag.
+
+### Improvements
+* **📁 Drag & Drop Word Reordering**: Replaced up/down buttons with grip handle drag & drop in folder word list, with a swap animation.
+* **📝 Word 3-dot Menu**: Added a context menu (Edit word, Move to another folder, Delete) to folder words. Moving uses a dedicated confirmation screen for safe operation.
+* **🌍 Chrome Web Store Localization**: Extension name and description are displayed in Japanese or English based on your browser's language settings.
 
 ---
 
 ## 🆕 v1.2.2 Updates
 
 ### Improvements
-* **🎨 Search Animation Improvement**: Tweet list now appears simultaneously with a smooth float-up animation after searching.
-* **🔄 Natural Best Post Flow**: Best Post updates no longer cause a reload — they now flow in naturally from the top together with other new posts.
-* **🖼️ Media Display Fix**: Fixed an issue where image and video thumbnails were not being displayed.
+* **🎨 Search Animation Improvements**: Improved the search results display animation for a smoother experience.
+* **🔄 Natural Best Post Flow**: Best posts now flow naturally into the list during background updates.
+* **🖼️ Media Display Fix**: Fixed an issue where some media were not displayed correctly.
 
 ---
 
 ## 🆕 v1.2.1 Updates
 
-### Improvements
-* **⭐ Best Post Refresh Interval Setting**: You can now choose the Best Post refresh interval from 1 min / 5 min / 10 min / 30 min (default: 5 min). Configurable from "Best Post Refresh Interval" in Settings.
-* **🔄 Natural Best Post Display**: When the Best Post refreshes, it now flows in naturally together with new timeline posts instead of jumping to the top.
-* **📊 Auto Graph Refresh**: Post count graph data is now automatically refreshed when the Best Post updates.
+### New Features
+* **⭐ Best Post Refresh Interval Setting**: You can now choose the best post refresh interval from 1 min / 5 min / 10 min / 30 min.
+* **🔄 Natural Best Post Display**: When the best post is updated, it is now naturally added to the list instead of reloading the entire list.
+* **📊 Graph Auto-Refresh**: The post count graph now supports auto-refresh.
 
 ---
 
