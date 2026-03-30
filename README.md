@@ -1,19 +1,20 @@
 # リアタイ！ (Liatai)
 
-[![Version](https://img.shields.io/badge/version-1.2.6-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.2.7-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](README_EN.md) | 日本語
 
 ---
 
-## 🆕 v1.2.6 アップデート
+## 🆕 v1.2.7 アップデート
 
 ### 改善
 * **📁 フォルダ内ワードの全件表示**: 10件制限を撤廃。11件以上はスクロール表示に対応（下部グラデーション付き）。
 * **🔄 ワード並び替えを上下ボタンに変更**: ドラッグ&ドロップから上下ボタン方式に変更し、確実に並び替えできるようになりました。
 * **➕ ワード追加を末尾に**: 新規ワードがリストの末尾に追加されるようになりました。
 * **📝 3点メニューの表示位置改善**: リスト下部のアイテムではメニューが上方向に開くよう修正。
+* **🔧 v1.2.6 ビルド不備修正**: v1.2.6で反映されなかった上記改善を正しく反映。
 
 ---
 

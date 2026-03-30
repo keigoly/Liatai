@@ -1,19 +1,20 @@
 # Liatai (Real-time!)
 
-[![Version](https://img.shields.io/badge/version-1.2.6-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.2.7-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [日本語](README.md) | English
 
 ---
 
-## 🆕 v1.2.6 Updates
+## 🆕 v1.2.7 Updates
 
 ### Improvements
 * **📁 Show All Folder Words**: Removed the 10-item limit. 11+ items are now scrollable with a bottom gradient indicator.
 * **🔄 Up/Down Button Reordering**: Replaced drag & drop with reliable up/down buttons for word reordering.
 * **➕ New Words Added to Bottom**: Newly added words now appear at the end of the list.
 * **📝 Menu Position Fix**: Context menu opens upward for items near the bottom of the list.
+* **🔧 v1.2.6 Build Fix**: Correctly applies all improvements that were missing in v1.2.6.
 
 ---
 
