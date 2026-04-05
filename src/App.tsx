@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import { fetchRealtimeTrends } from './services/realtimeService';
 import type { TrendItem, TabType, ViewType, HomeTabType } from './types/index';
+import { STORAGE_KEYS } from './constants/index';
 
 // フック
 import { useSettings, useSearchHistory, useTheme, useTweets } from './hooks/index';
@@ -17,8 +18,15 @@ import { RegisteredPanel } from './components/RegisteredPanel';
 import { TweetCard } from './components/search/TweetCard';
 import { TweetGraph } from './components/search/TweetGraph';
 import { TrendList } from './components/home/TrendList';
+import { WelcomeScreen } from './components/WelcomeScreen';
+import { SnsShare } from './components/SnsShare';
 
 function App() {
+  // ========== ウェルカム画面 ==========
+  const [showWelcome, setShowWelcome] = useState(() => {
+    return !localStorage.getItem(STORAGE_KEYS.WELCOME_COMPLETED);
+  });
+
   // ========== カスタムフックで状態管理 ==========
   const settings = useSettings();
   const { language, setLanguage, t } = useLanguage();
@@ -153,6 +161,16 @@ function App() {
   const filteredTweets = tweetsState.filterTweets(tweetsState.tweets, activeTab, settings.ngSettings);
 
   // ========== レンダリング ==========
+
+  // ウェルカム画面（初回起動時のみ）
+  if (showWelcome) {
+    return (
+      <div style={themeStyles}>
+        <WelcomeScreen t={t} onComplete={() => setShowWelcome(false)} />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-screen bg-[var(--bg-color)] flex overflow-hidden transition-colors duration-300" style={themeStyles}>
       <style>{`
@@ -274,6 +292,13 @@ function App() {
             </div>
           )}
         </main>
+
+        {/* ホーム画面の固定フッター: SNSシェア */}
+        {currentView === 'home' && (
+          <div className="flex-shrink-0 border-t border-[var(--border-color)] bg-[var(--bg-color)]">
+            <SnsShare compact />
+          </div>
+        )}
       </div>
       <div className="flex-1 bg-[var(--bg-color)] hidden sm:block transition-colors duration-300"></div>
     </div>

@@ -18,6 +18,10 @@ export default defineConfig({
           }
           return 'assets/[name]-[hash].js';
         },
+        // Firebase SDKを別チャンクに分離（バンドルサイズ最適化）
+        manualChunks: {
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+        },
       },
     },
   },

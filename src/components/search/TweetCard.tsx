@@ -139,7 +139,7 @@ export const TweetCard = ({
                     )}
 
                     {/* テキスト */}
-                    <TweetText text={tweet.text} onHashtagClick={onHashtagClick} />
+                    <TweetText text={tweet.text} onHashtagClick={onHashtagClick} hashtags={tweet.hashtags} />
 
                     {/* メディア */}
                     {activeTab !== 'text' && tweet.mediaUrl && (

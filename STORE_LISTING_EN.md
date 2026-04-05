@@ -41,9 +41,10 @@ Switch from side panel to a popup window. Your search state carries over to the 
 - Font Size: Adjustable in 5 steps from 13px to 18px
 
 - Privacy by Design
-This extension stores settings only within your browser and never sends personal data to external servers.
+This extension stores settings only within your browser and never sends personal data to external servers. When using Google account sync, only settings, saved words, block settings, and search history are synced.
 
 - Changelog
+v1.3.0: Google account integration & cross-device sync, first-launch welcome screen, improved hashtag parsing accuracy (Yahoo JSON), SNS share moved to common footer
 v1.2.6: Show all folder words (scrollable), up/down button reordering, new words added to bottom, menu position fix
 v1.2.5: Post count graph, Load More, faster JSON-based data fetching fully integrated into Chrome version
 v1.2.4: Fixed hashtag concatenation, drag & drop word reordering, word context menu (edit/move/delete), move confirmation screen

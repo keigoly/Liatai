@@ -1,7 +1,7 @@
 // src/hooks/useSettings.ts
 // 設定関連の状態管理フック
 
-import { useLocalStorage } from './useLocalStorage';
+import { useSyncedStorage } from './useSyncedStorage';
 import { STORAGE_KEYS, DEFAULTS } from '../constants/index';
 import type { ThemeColor, BgMode, FontSize, NgSettings, GraphPeriod } from '../types/index';
 
@@ -38,47 +38,47 @@ export interface SettingsState {
 }
 
 export function useSettings(): SettingsState {
-    const [autoRefresh, setAutoRefresh] = useLocalStorage<boolean>(
+    const [autoRefresh, setAutoRefresh] = useSyncedStorage<boolean>(
         STORAGE_KEYS.AUTO_REFRESH,
         DEFAULTS.AUTO_REFRESH
     );
 
-    const [trendRefreshInterval, setTrendRefreshInterval] = useLocalStorage<number>(
+    const [trendRefreshInterval, setTrendRefreshInterval] = useSyncedStorage<number>(
         STORAGE_KEYS.TREND_INTERVAL,
         DEFAULTS.TREND_INTERVAL
     );
 
-    const [searchRefreshInterval, setSearchRefreshInterval] = useLocalStorage<number>(
+    const [searchRefreshInterval, setSearchRefreshInterval] = useSyncedStorage<number>(
         STORAGE_KEYS.SEARCH_INTERVAL,
         DEFAULTS.SEARCH_INTERVAL
     );
 
-    const [themeColor, setThemeColor] = useLocalStorage<ThemeColor>(
+    const [themeColor, setThemeColor] = useSyncedStorage<ThemeColor>(
         STORAGE_KEYS.THEME_COLOR,
         DEFAULTS.THEME_COLOR
     );
 
-    const [bgMode, setBgMode] = useLocalStorage<BgMode>(
+    const [bgMode, setBgMode] = useSyncedStorage<BgMode>(
         STORAGE_KEYS.BG_MODE,
         DEFAULTS.BG_MODE
     );
 
-    const [fontSize, setFontSize] = useLocalStorage<FontSize>(
+    const [fontSize, setFontSize] = useSyncedStorage<FontSize>(
         STORAGE_KEYS.FONT_SIZE,
         DEFAULTS.FONT_SIZE
     );
 
-    const [ngSettings, setNgSettingsState] = useLocalStorage<NgSettings>(
+    const [ngSettings, setNgSettingsState] = useSyncedStorage<NgSettings>(
         STORAGE_KEYS.NG_SETTINGS,
         DEFAULTS.NG_SETTINGS
     );
 
-    const [graphDefaultPeriod, setGraphDefaultPeriod] = useLocalStorage<GraphPeriod>(
+    const [graphDefaultPeriod, setGraphDefaultPeriod] = useSyncedStorage<GraphPeriod>(
         STORAGE_KEYS.GRAPH_DEFAULT_PERIOD,
         DEFAULTS.GRAPH_DEFAULT_PERIOD
     );
 
-    const [bestPostInterval, setBestPostInterval] = useLocalStorage<number>(
+    const [bestPostInterval, setBestPostInterval] = useSyncedStorage<number>(
         STORAGE_KEYS.BEST_POST_INTERVAL,
         DEFAULTS.BEST_POST_INTERVAL
     );

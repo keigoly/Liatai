@@ -38,6 +38,11 @@ export interface FolderItem {
 }
 
 // ========== ツイート関連 ==========
+export interface TweetHashtag {
+  text: string;       // ハッシュタグのテキスト（#なし）
+  indices: [number, number]; // 元テキスト中の位置 [start, end)
+}
+
 export interface Tweet {
   id: string;
   text: string;
@@ -52,6 +57,7 @@ export interface Tweet {
   likeCount?: string;
   isBest: boolean;
   replyTo?: string;
+  hashtags?: TweetHashtag[]; // Yahoo JSONから取得した正確なハッシュタグ情報
 }
 
 // ========== トレンド関連 ==========
@@ -95,3 +101,18 @@ export interface TransitionResult {
 export type TabType = 'all' | 'text' | 'media';
 export type ViewType = 'home' | 'search';
 export type HomeTabType = 'trends' | 'registered' | 'settings';
+
+// ========== 認証関連 ==========
+export interface AuthUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
+// ========== 同期関連 ==========
+export interface SyncDocument<T = unknown> {
+  data: T;
+  updatedAt: number;
+  sourceDeviceId: string;
+}

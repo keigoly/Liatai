@@ -1,9 +1,23 @@
 # リアタイ！ (Liatai)
 
-[![Version](https://img.shields.io/badge/version-1.2.6-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](README_EN.md) | 日本語
+
+---
+
+## 🆕 v1.3.0 アップデート
+
+### 新機能
+* **🔐 Googleアカウント連携**: Googleアカウントでサインインし、設定・登録ワード・NG設定・検索履歴をクラウド同期できるようになりました。
+* **☁️ クロスデバイス同期**: Firestoreを利用したリアルタイム同期。複数のChrome環境で同じ設定を共有できます。
+* **👋 ウェルカム画面**: 初回起動時にアニメーション付きのウェルカム画面を表示。Googleアカウント登録またはスキップを選択できます。
+
+### 改善
+* **#️⃣ ハッシュタグ解析の精度向上**: Yahoo! JSON内のhashtags情報を活用し、正規表現の推測に頼らず正確にハッシュタグを識別するようになりました。
+* **📱 SNSシェアを全タブ共通フッターに移動**: トレンド・登録・設定の全画面で常時表示されるようになりました。
+* **🛡️ セキュリティ強化**: Firestore Security Rulesによるユーザーデータ保護、Chrome Identity APIによる安全な認証。
 
 ---
 
@@ -132,7 +146,7 @@
 
 ## ◇ 安心のプライバシー設計
 
-この拡張機能は、設定情報をブラウザ内にのみ保存し、外部サーバーへ個人データを送信することはありません。安心してご利用いただけます。
+この拡張機能は、設定情報をブラウザ内に保存します。Googleアカウント連携時は、設定・登録ワード・NG設定・検索履歴のみがFirestoreに同期されます。検索内容やツイートデータがサーバーに保存されることはありません。
 
 詳細は [プライバシーポリシー](PRIVACY.md) をご覧ください。
 

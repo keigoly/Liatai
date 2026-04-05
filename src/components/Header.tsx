@@ -2,10 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { TranslationKey } from '../i18n/translations';
-
-type ViewType = 'home' | 'search';
-type HomeTabType = 'trends' | 'registered' | 'settings';
-type TabType = 'all' | 'text' | 'media';
+import type { ViewType, HomeTabType, TabType } from '../types/index';
 
 interface HeaderProps {
   t: (key: TranslationKey) => string;

@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { RegisteredItem, FolderItem } from '../types';
 import type { TranslationKey } from '../i18n/translations';
-import { SnsShare } from './SnsShare';
 
 interface Props {
   t: (key: TranslationKey) => string;
@@ -888,7 +887,6 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
         )}
 
       </div>
-      <SnsShare compact />
     </div>
   );
 };

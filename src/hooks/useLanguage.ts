@@ -2,7 +2,7 @@
 // 言語設定を管理するフック
 
 import { useCallback, useMemo } from 'react';
-import { useLocalStorage } from './useLocalStorage';
+import { useSyncedStorage } from './useSyncedStorage';
 import { translations, type Language, type TranslationKey } from '../i18n/translations';
 import { STORAGE_KEYS, DEFAULTS } from '../constants/index';
 
@@ -13,7 +13,7 @@ export interface UseLanguageReturn {
 }
 
 export function useLanguage(): UseLanguageReturn {
-    const [language, setLanguage] = useLocalStorage<Language>(
+    const [language, setLanguage] = useSyncedStorage<Language>(
         STORAGE_KEYS.LANGUAGE,
         DEFAULTS.LANGUAGE
     );

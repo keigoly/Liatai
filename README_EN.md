@@ -1,9 +1,23 @@
 # Liatai (Real-time!)
 
-[![Version](https://img.shields.io/badge/version-1.2.6-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [日本語](README.md) | English
+
+---
+
+## 🆕 v1.3.0 Updates
+
+### New Features
+* **🔐 Google Account Integration**: Sign in with Google to sync settings, saved words, block settings, and search history to the cloud.
+* **☁️ Cross-Device Sync**: Real-time sync via Firestore. Share the same settings across multiple Chrome environments.
+* **👋 Welcome Screen**: Animated welcome screen on first launch. Choose to register a Google account or skip.
+
+### Improvements
+* **#️⃣ Improved Hashtag Parsing**: Uses Yahoo JSON hashtag data for precise hashtag identification instead of regex guessing.
+* **📱 SNS Share Moved to Common Footer**: Now always visible across Trends, Saved, and Settings tabs.
+* **🛡️ Security Enhancements**: User data protection via Firestore Security Rules, secure authentication via Chrome Identity API.
 
 ---
 
