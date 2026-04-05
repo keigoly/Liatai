@@ -99,6 +99,14 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
         { id: 'dummy-5-5', text: '#ワード5-E', isPinned: false },
       ]
     },
+    {
+      id: 'dummy-folder-6', name: 'テストフォルダ6（20件）', color: '#ff6b35', isPinned: false,
+      items: Array.from({ length: 20 }, (_, i) => ({
+        id: `dummy-6-${i + 1}`,
+        text: `#ダミーワード${i + 1}`,
+        isPinned: false,
+      }))
+    },
   ];
 
   const [folders, setFolders] = useState<FolderItem[]>(() => {
@@ -130,10 +138,8 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
   // ドラッグ用（フォルダ一覧のみ）
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
 
-  // モーダル内ワードのドラッグ用
-  const [modalDragIndex, setModalDragIndex] = useState<number | null>(null);
-  // 入れ替えアニメーション用: 押し出されたアイテムのID
-  const [displacedWordId, setDisplacedWordId] = useState<string | null>(null);
+  // 移動アニメーション用
+  const [movedWordId, setMovedWordId] = useState<string | null>(null);
   // モーダル内ワードの3点メニュー
   const [modalWordMenuId, setModalWordMenuId] = useState<string | null>(null);
   // モーダル内ワード編集
@@ -232,7 +238,7 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
       return;
     }
     const newWord: RegisteredItem = { id: crypto.randomUUID(), text: modalWordInput.trim() };
-    setModalData(prev => prev ? { ...prev, items: [newWord, ...prev.items] } : null);
+    setModalData(prev => prev ? { ...prev, items: [...prev.items, newWord] } : null);
     setModalWordInput('');
   };
 
@@ -370,32 +376,31 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
     setDraggedItemIndex(null);
   };
 
-  // --- モーダル内ワードのドラッグ&ドロップ ---
-  const handleModalDragStart = (index: number) => {
-    setModalDragIndex(index);
-  };
-
-  const handleModalDragOver = (e: React.DragEvent, overIndex: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (modalDragIndex === null || modalDragIndex === overIndex || !modalData) return;
-    // 押し出されるアイテムのIDを記録（くるっとアニメーション用）
-    const displacedId = modalData.items[overIndex].id;
-    setDisplacedWordId(displacedId);
-    setTimeout(() => setDisplacedWordId(null), 300);
-    // リアルタイムに並び替え
+  // --- モーダル内ワード移動（上下ボタン） ---
+  const moveModalWordUp = (index: number) => {
+    if (index <= 0 || !modalData) return;
+    const movedId = modalData.items[index].id;
     setModalData(prev => {
       if (!prev) return null;
       const newItems = [...prev.items];
-      const [dragged] = newItems.splice(modalDragIndex, 1);
-      newItems.splice(overIndex, 0, dragged);
+      [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
       return { ...prev, items: newItems };
     });
-    setModalDragIndex(overIndex);
+    setMovedWordId(movedId);
+    setTimeout(() => setMovedWordId(null), 400);
   };
 
-  const handleModalDragEnd = () => {
-    setModalDragIndex(null);
+  const moveModalWordDown = (index: number) => {
+    if (!modalData || index >= modalData.items.length - 1) return;
+    const movedId = modalData.items[index].id;
+    setModalData(prev => {
+      if (!prev) return null;
+      const newItems = [...prev.items];
+      [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+      return { ...prev, items: newItems };
+    });
+    setMovedWordId(movedId);
+    setTimeout(() => setMovedWordId(null), 400);
   };
 
   return (
@@ -413,13 +418,12 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
           0% { opacity: 0; transform: scale(0.95) translateY(10px); }
           100% { opacity: 1; transform: scale(1) translateY(0); }
         }
-        @keyframes word-swap {
-          0% { transform: scale(0.85) rotate(-6deg); opacity: 0.5; }
-          50% { transform: scale(1.04) rotate(2deg); opacity: 1; }
-          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        @keyframes word-highlight {
+          0% { background-color: rgba(29, 155, 240, 0.4); transform: scale(1.02); }
+          100% { background-color: transparent; transform: scale(1); }
         }
-        .animate-word-swap {
-          animation: word-swap 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        .animate-word-move {
+          animation: word-highlight 0.4s ease-out;
         }
       `}</style>
 
@@ -487,20 +491,29 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                 modalData.items.map((w, index) => (
                   <div
                     key={w.id}
-                    draggable={editingWordId !== w.id}
-                    onDragStart={() => handleModalDragStart(index)}
-                    onDragOver={(e) => handleModalDragOver(e, index)}
-                    onDragEnd={handleModalDragEnd}
-                    className={`relative flex justify-between items-center p-3 border-b border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors ${modalDragIndex === index ? 'opacity-40' : ''} ${displacedWordId === w.id ? 'animate-word-swap' : ''}`}
+                    className={`relative flex justify-between items-center p-3 border-b border-[var(--border-color)] hover:bg-[var(--card-bg-color)] transition-colors ${movedWordId === w.id ? 'animate-word-move' : ''}`}
                   >
                     <div className="flex items-center gap-2 flex-1 min-w-0">
-                      {/* ドラッグハンドル */}
-                      <div className="cursor-grab active:cursor-grabbing text-gray-500 hover:text-gray-300 touch-none flex-shrink-0">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                          <circle cx="9" cy="5" r="1.5" /><circle cx="15" cy="5" r="1.5" />
-                          <circle cx="9" cy="12" r="1.5" /><circle cx="15" cy="12" r="1.5" />
-                          <circle cx="9" cy="19" r="1.5" /><circle cx="15" cy="19" r="1.5" />
-                        </svg>
+                      {/* 上下移動ボタン */}
+                      <div className="flex flex-col gap-0.5 flex-shrink-0">
+                        <button
+                          onClick={() => moveModalWordUp(index)}
+                          disabled={index === 0}
+                          className={`p-0.5 rounded hover:bg-gray-700 transition-colors ${index === 0 ? 'opacity-30 cursor-not-allowed' : 'text-gray-400 hover:text-white'}`}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 15l-6-6-6 6" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => moveModalWordDown(index)}
+                          disabled={index === modalData.items.length - 1}
+                          className={`p-0.5 rounded hover:bg-gray-700 transition-colors ${index === modalData.items.length - 1 ? 'opacity-30 cursor-not-allowed' : 'text-gray-400 hover:text-white'}`}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 9l6 6 6-6" />
+                          </svg>
+                        </button>
                       </div>
                       {editingWordId === w.id ? (
                         <div className="flex items-center gap-1 flex-1 min-w-0">
@@ -536,9 +549,9 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                       </button>
                     )}
 
-                    {/* メニューポップアップ */}
+                    {/* メニューポップアップ（下部のアイテムは上方向に開く） */}
                     {modalWordMenuId === w.id && (
-                      <div className="absolute right-2 top-10 z-[70] bg-[#202327] border border-gray-600 rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in zoom-in-95 duration-150" onClick={e => e.stopPropagation()}>
+                      <div className={`absolute right-2 z-[70] bg-[#202327] border border-gray-600 rounded-lg shadow-xl py-1 min-w-[160px] animate-in fade-in zoom-in-95 duration-150 ${index >= modalData.items.length - 3 ? 'bottom-10' : 'top-10'}`} onClick={e => e.stopPropagation()}>
                         <button
                           onClick={() => startEditModalWord(w)}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
@@ -863,18 +876,23 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                           {folder.items.length === 0 ? (
                             <div className="p-4 text-center text-gray-500 text-xs">{t('noRegisteredWordsShort')}</div>
                           ) : (
-                            folder.items.slice(0, 10).map(item => (
-                              <div
-                                key={item.id}
-                                onClick={() => onSearch(item.text)}
-                                className="flex items-center px-4 py-3 border-b border-gray-800 last:border-0 hover:bg-[#1d1f23] cursor-pointer transition-colors"
-                              >
-                                <div className="w-6 flex justify-center flex-shrink-0">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-gray-500"></div>
+                            <div className={folder.items.length > 10 ? 'max-h-[440px] overflow-y-auto scrollbar-hide' : ''}>
+                              {folder.items.map(item => (
+                                <div
+                                  key={item.id}
+                                  onClick={() => onSearch(item.text)}
+                                  className="flex items-center px-4 py-3 border-b border-gray-800 last:border-0 hover:bg-[#1d1f23] cursor-pointer transition-colors"
+                                >
+                                  <div className="w-6 flex justify-center flex-shrink-0">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-gray-500"></div>
+                                  </div>
+                                  <span className="text-white text-sm font-bold">{item.text}</span>
                                 </div>
-                                <span className="text-white text-sm font-bold">{item.text}</span>
-                              </div>
-                            ))
+                              ))}
+                              {folder.items.length > 10 && (
+                                <div className="sticky bottom-0 bg-gradient-to-t from-[#16181c] to-transparent h-6 pointer-events-none" />
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
