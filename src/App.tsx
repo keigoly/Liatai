@@ -29,6 +29,8 @@ import { SnsShare } from './components/SnsShare';
 function App() {
   // ========== ウェルカム画面 ==========
   const [showWelcome, setShowWelcome] = useState(() => {
+    // NextGenTV iframe 埋め込み時はウェルカム画面をスキップ
+    if (window.parent !== window) return false;
     return !localStorage.getItem(STORAGE_KEYS.WELCOME_COMPLETED);
   });
 
