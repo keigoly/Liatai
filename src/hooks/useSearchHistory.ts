@@ -1,7 +1,7 @@
 // src/hooks/useSearchHistory.ts
 // 検索履歴管理フック
 
-import { useLocalStorage } from './useLocalStorage';
+import { useSyncedStorage } from './useSyncedStorage';
 import { STORAGE_KEYS, DEFAULTS } from '../constants/index';
 
 export interface SearchHistoryState {
@@ -15,7 +15,7 @@ export interface SearchHistoryState {
  * 検索履歴を管理するフック
  */
 export function useSearchHistory(): SearchHistoryState {
-    const [searchHistory, setSearchHistory] = useLocalStorage<string[]>(
+    const [searchHistory, setSearchHistory] = useSyncedStorage<string[]>(
         STORAGE_KEYS.SEARCH_HISTORY,
         DEFAULTS.SEARCH_HISTORY
     );

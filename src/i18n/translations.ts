@@ -143,6 +143,30 @@ export const translations = {
         // ========== ツイートメニュー ==========
         blockUser: 'このユーザーをNG',
         openOriginal: '元のポストを開く',
+
+        // ========== アカウント ==========
+        account: 'アカウント',
+        signIn: 'Googleでサインイン',
+        signOut: 'サインアウト',
+        signInDescription: 'Googleアカウントでサインインすると、設定やワードを他のデバイスと同期できます。',
+        syncStatus: '同期状態',
+        syncStatusIdle: '同期済み',
+        syncStatusSyncing: '同期中...',
+        syncStatusError: '同期エラー',
+        syncStatusOffline: 'オフライン',
+        lastSynced: '最終同期',
+        syncNow: '今すぐ同期',
+        signedInAs: 'サインイン中',
+        privacyNotice: '※検索内容やツイートデータはサーバーに保存されません。同期されるのは設定・登録ワード・NG設定・検索履歴のみです。',
+        chromeSignInRequired: 'Googleアカウントでサインインするには、Chromeにサインインしている必要があります。',
+        signInError: 'サインインに失敗しました。',
+
+        // ========== ウェルカム画面 ==========
+        welcomeTitle: 'リアタイ！へようこそ',
+        welcomeDescription: 'リアルタイムでトレンドやツイートをチェックしよう',
+        welcomeSyncFeature: 'Googleアカウントで登録すると、設定やワードを他のデバイスと自動同期できます。',
+        welcomeRegisterAccount: 'Googleアカウントを登録',
+        welcomeSkip: '今はスキップ',
     },
 
     en: {
@@ -284,6 +308,30 @@ export const translations = {
         // ========== Tweet Menu ==========
         blockUser: 'Block this user',
         openOriginal: 'Open original post',
+
+        // ========== Account ==========
+        account: 'Account',
+        signIn: 'Sign in with Google',
+        signOut: 'Sign out',
+        signInDescription: 'Sign in with your Google account to sync settings and words across devices.',
+        syncStatus: 'Sync Status',
+        syncStatusIdle: 'Synced',
+        syncStatusSyncing: 'Syncing...',
+        syncStatusError: 'Sync Error',
+        syncStatusOffline: 'Offline',
+        lastSynced: 'Last synced',
+        syncNow: 'Sync now',
+        signedInAs: 'Signed in as',
+        privacyNotice: '* Search queries and tweet data are never stored on servers. Only settings, saved words, block settings, and search history are synced.',
+        chromeSignInRequired: 'You need to be signed in to Chrome to use Google sign-in.',
+        signInError: 'Sign-in failed.',
+
+        // ========== Welcome Screen ==========
+        welcomeTitle: 'Welcome to Riatai!',
+        welcomeDescription: 'Check real-time trends and tweets',
+        welcomeSyncFeature: 'Register with Google to automatically sync settings and words across devices.',
+        welcomeRegisterAccount: 'Register Google Account',
+        welcomeSkip: 'Skip for now',
     },
 } as const;
 

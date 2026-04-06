@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { runMigration } from './utils/migration'
 import { initBridge } from './lib/nextgentv-bridge'
+import { AuthProvider } from './contexts/AuthContext'
 
 // v1.0.x → v1.1.0 ストレージマイグレーション
 runMigration();
@@ -13,6 +14,8 @@ initBridge();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </StrictMode>,
 )

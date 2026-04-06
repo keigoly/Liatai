@@ -1,6 +1,6 @@
 // src/services/realtimeService.ts
 
-import type { Tweet, TrendItem, TrendResult, FetchTweetsResult, TrendState, TransitionResult, GraphPeriod } from '../types/index';
+import type { Tweet, TweetHashtag, TrendItem, TrendResult, FetchTweetsResult, TrendState, TransitionResult, GraphPeriod } from '../types/index';
 import { generateHashId, parseRelativeTime } from '../utils/helpers';
 
 // Re-export types for backward compatibility
@@ -24,6 +24,7 @@ interface JsonEntry {
   media?: Array<Record<string, any>>;
   replyScreenName?: string;
   badge?: { show?: boolean; type?: string; color?: string };
+  hashtags?: Array<{ text: string; indices: [number, number] }>;
 }
 
 // ========== YahooのJSONキーワードハイライト用マーカー除去 ==========
@@ -88,6 +89,7 @@ const mapEntryToTweet = (entry: JsonEntry): Tweet => {
     likeCount: entry.likesCount ? String(entry.likesCount) : undefined,
     isBest: false,
     replyTo: entry.replyScreenName ? `@${entry.replyScreenName}` : undefined,
+    hashtags: entry.hashtags as TweetHashtag[] | undefined,
   };
 };
 

@@ -86,7 +86,27 @@ export const STORAGE_KEYS = {
     REGISTERED_PANEL_TAB: 'sidestream_registered_panel_tab',
     GRAPH_DEFAULT_PERIOD: 'sidestream_settings_graphDefaultPeriod',
     BEST_POST_INTERVAL: 'sidestream_settings_bestPostInterval',
+    DEVICE_ID: 'sidestream_device_id',
+    AUTH_LAST_SYNC: 'sidestream_auth_last_sync',
+    WELCOME_COMPLETED: 'sidestream_welcome_completed',
 } as const;
+
+// ストレージキー → Firestoreドキュメントのマッピング
+export const SYNC_KEY_MAP: Record<string, { doc: string; field?: string }> = {
+    [STORAGE_KEYS.LANGUAGE]: { doc: 'settings', field: 'language' },
+    [STORAGE_KEYS.AUTO_REFRESH]: { doc: 'settings', field: 'autoRefresh' },
+    [STORAGE_KEYS.TREND_INTERVAL]: { doc: 'settings', field: 'trendInterval' },
+    [STORAGE_KEYS.SEARCH_INTERVAL]: { doc: 'settings', field: 'searchInterval' },
+    [STORAGE_KEYS.THEME_COLOR]: { doc: 'settings', field: 'themeColor' },
+    [STORAGE_KEYS.BG_MODE]: { doc: 'settings', field: 'bgMode' },
+    [STORAGE_KEYS.FONT_SIZE]: { doc: 'settings', field: 'fontSize' },
+    [STORAGE_KEYS.GRAPH_DEFAULT_PERIOD]: { doc: 'settings', field: 'graphDefaultPeriod' },
+    [STORAGE_KEYS.BEST_POST_INTERVAL]: { doc: 'settings', field: 'bestPostInterval' },
+    [STORAGE_KEYS.NG_SETTINGS]: { doc: 'ngSettings' },
+    [STORAGE_KEYS.REGISTERED_WORDS]: { doc: 'registeredWords' },
+    [STORAGE_KEYS.FOLDERS]: { doc: 'folders' },
+    [STORAGE_KEYS.SEARCH_HISTORY]: { doc: 'searchHistory' },
+};
 
 // ========== デフォルト値 ==========
 
@@ -139,3 +159,16 @@ export const REPLAY = {
   TIME_UPDATE_THROTTLE_MS: 5000,     // リプレイ中のbroadcastTs更新間隔（デフォルト5秒）
   TIME_UPDATE_OPTIONS: [1000, 5000, 10000, 30000] as readonly number[], // 選択肢: 1秒/5秒/10秒/30秒
 } as const;
+
+// ========== Firebase設定 ==========
+export const FIREBASE_CONFIG = {
+    apiKey: 'AIzaSyAOHBjSjR8_r3BOV6JD_jbpryMaSHsj_5E',
+    authDomain: 'riatai.firebaseapp.com',
+    projectId: 'riatai',
+    storageBucket: 'riatai.firebasestorage.app',
+    messagingSenderId: '635713763868',
+    appId: '1:635713763868:web:f8c858b61c615be5ebbdd9',
+};
+
+// ========== 同期設定 ==========
+export const SYNC_DEBOUNCE_MS = 500;

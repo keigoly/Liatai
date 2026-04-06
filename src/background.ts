@@ -6,7 +6,22 @@ chrome.sidePanel
   .catch((error: unknown) => console.error(error));
 
 // メッセージハンドラ: ポップアップからサイドパネルを開くリクエストを受ける
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // 拡張機能自身からのメッセージのみ受け付ける
+  if (sender.id !== chrome.runtime.id) return;
+
+  // 認証トークンリフレッシュハンドラ
+  if (message.action === 'refreshAuthToken') {
+    chrome.identity.getAuthToken({ interactive: false }, (token) => {
+      if (chrome.runtime.lastError) {
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        sendResponse({ success: true, token });
+      }
+    });
+    return true; // 非同期レスポンス
+  }
+
   if (message.action === 'openSidePanel') {
     // アクティブなタブを取得してサイドパネルを開く
     chrome.tabs.query({ active: true, lastFocusedWindow: true }, (tabs) => {
