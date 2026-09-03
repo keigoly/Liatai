@@ -13,7 +13,48 @@ import {
   mergeSettings, mergeNgSettings, mergeRegisteredWords,
   mergeFolders, mergeSearchHistory,
 } from '../utils/syncMerge';
+import {
+  isTombstoneDoc, mergeTombstones, tombstoneIdSet, type Tombstone,
+} from '../utils/tombstones';
 import type { NgSettings, RegisteredItem, FolderItem } from '../types/index';
+
+// ========== 墓標（tombstone）==========
+// mergeArrayById は union なので「リモートに無い＝削除」を表現できない。削除を明示的な事実
+// として doc の `deleted` フィールドで運ぶ。ローカルにも持って push のたびに載せ直す
+// （相手が deleted 未対応でも、こちらの push で書き戻るので収束する）。
+
+const TOMBSTONE_STORAGE_KEY = 'sidestream_sync_tombstones';
+
+function loadTombstones(): Record<string, Tombstone[]> {
+  try {
+    const raw = localStorage.getItem(TOMBSTONE_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, Tombstone[]>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveTombstones(all: Record<string, Tombstone[]>): void {
+  try {
+    localStorage.setItem(TOMBSTONE_STORAGE_KEY, JSON.stringify(all));
+  } catch {
+    // 保存できない環境でも同期そのものは続ける
+  }
+}
+
+export function getTombstones(docName: string): Tombstone[] {
+  return loadTombstones()[docName] ?? [];
+}
+
+/** 墓標を積む（既存へマージして保存し、マージ後の全量を返す）。 */
+export function addTombstones(docName: string, tombs: Tombstone[]): Tombstone[] {
+  if (!isTombstoneDoc(docName) || tombs.length === 0) return getTombstones(docName);
+  const all = loadTombstones();
+  const merged = mergeTombstones(all[docName] ?? [], tombs, Date.now());
+  all[docName] = merged;
+  saveTombstones(all);
+  return merged;
+}
 
 // settingsドキュメントのリモートフィールド名 → ローカルストレージキーのマッピング（モジュール定数）
 const SETTINGS_FIELD_TO_KEY: Record<string, string> = Object.fromEntries(
@@ -96,9 +137,11 @@ export function pushToRemote(uid: string, docName: string, data: unknown, field?
           });
         }
       } else {
-        // ドキュメント全体の書き込み
+        // ドキュメント全体の書き込み。削除を伝えるため墓標を常に載せる
+        // （相手が未対応なら無視されるだけ。相手の push で落ちても次のこちらの push で戻る）。
         await setDoc(docRef, {
           data,
+          deleted: getTombstones(docName),
           updatedAt: now,
           sourceDeviceId: deviceId,
           serverUpdatedAt: serverTimestamp(),
@@ -114,7 +157,7 @@ export function pushToRemote(uid: string, docName: string, data: unknown, field?
 /**
  * Firestoreからデータを読み込み（一回限り）
  */
-export async function pullFromRemote<T>(uid: string, docName: string): Promise<{ data: T; updatedAt: number } | null> {
+export async function pullFromRemote<T>(uid: string, docName: string): Promise<{ data: T; updatedAt: number; deleted: Tombstone[] } | null> {
   try {
     const docRef = doc(db, 'users', uid, 'sync', docName);
     const snapshot = await getDoc(docRef);
@@ -123,6 +166,7 @@ export async function pullFromRemote<T>(uid: string, docName: string): Promise<{
       return {
         data: docData.data as T,
         updatedAt: docData.updatedAt as number,
+        deleted: Array.isArray(docData.deleted) ? (docData.deleted as Tombstone[]) : [],
       };
     }
     return null;
@@ -159,9 +203,9 @@ export async function uploadInitialData(uid: string): Promise<void> {
 
   await Promise.all([
     setDoc(doc(db, 'users', uid, 'sync', 'settings'), { data: settings, ...base }),
-    setDoc(doc(db, 'users', uid, 'sync', 'ngSettings'), { data: ngSettings, ...base }),
-    setDoc(doc(db, 'users', uid, 'sync', 'registeredWords'), { data: registeredWords, ...base }),
-    setDoc(doc(db, 'users', uid, 'sync', 'folders'), { data: folders, ...base }),
+    setDoc(doc(db, 'users', uid, 'sync', 'ngSettings'), { data: ngSettings, deleted: getTombstones('ngSettings'), ...base }),
+    setDoc(doc(db, 'users', uid, 'sync', 'registeredWords'), { data: registeredWords, deleted: getTombstones('registeredWords'), ...base }),
+    setDoc(doc(db, 'users', uid, 'sync', 'folders'), { data: folders, deleted: getTombstones('folders'), ...base }),
     setDoc(doc(db, 'users', uid, 'sync', 'searchHistory'), { data: searchHistory, ...base }),
   ]);
 
@@ -182,8 +226,17 @@ function getLocalChangeTimestamp(docName: string): number {
 /**
  * リモートからローカルへのマージ処理
  */
-function mergeRemoteToLocal(docName: string, remoteData: unknown, remoteUpdatedAt: number): void {
+function mergeRemoteToLocal(
+  docName: string,
+  remoteData: unknown,
+  remoteUpdatedAt: number,
+  remoteDeleted: Tombstone[] = []
+): void {
   const localUpdatedAt = getLocalChangeTimestamp(docName);
+  // リモートの墓標を自分の墓標へ取り込み、合算した集合でマージ結果から削除分を引く。
+  const deleted = tombstoneIdSet(
+    isTombstoneDoc(docName) ? addTombstones(docName, remoteDeleted) : []
+  );
 
   switch (docName) {
     case 'settings': {
@@ -200,21 +253,21 @@ function mergeRemoteToLocal(docName: string, remoteData: unknown, remoteUpdatedA
     case 'ngSettings': {
       const local = loadStorage<NgSettings>(STORAGE_KEYS.NG_SETTINGS, { comments: [], userIds: [] });
       const remote = remoteData as NgSettings;
-      const merged = mergeNgSettings(local, remote, localUpdatedAt, remoteUpdatedAt);
+      const merged = mergeNgSettings(local, remote, localUpdatedAt, remoteUpdatedAt, deleted);
       saveStorage(STORAGE_KEYS.NG_SETTINGS, merged);
       break;
     }
     case 'registeredWords': {
       const local = loadStorage<RegisteredItem[]>(STORAGE_KEYS.REGISTERED_WORDS, []);
       const remote = remoteData as RegisteredItem[];
-      const merged = mergeRegisteredWords(local, remote, localUpdatedAt, remoteUpdatedAt);
+      const merged = mergeRegisteredWords(local, remote, localUpdatedAt, remoteUpdatedAt, deleted);
       saveStorage(STORAGE_KEYS.REGISTERED_WORDS, merged);
       break;
     }
     case 'folders': {
       const local = loadStorage<FolderItem[]>(STORAGE_KEYS.FOLDERS, []);
       const remote = remoteData as FolderItem[];
-      const merged = mergeFolders(local, remote, localUpdatedAt, remoteUpdatedAt);
+      const merged = mergeFolders(local, remote, localUpdatedAt, remoteUpdatedAt, deleted);
       saveStorage(STORAGE_KEYS.FOLDERS, merged);
       break;
     }
@@ -272,9 +325,10 @@ export function startSyncListeners(uid: string): void {
 
       const remoteData = docData.data;
       const remoteUpdatedAt = docData.updatedAt as number;
+      const remoteDeleted = Array.isArray(docData.deleted) ? (docData.deleted as Tombstone[]) : [];
 
-      // リモートデータをローカルにマージ
-      mergeRemoteToLocal(docName, remoteData, remoteUpdatedAt);
+      // リモートデータをローカルにマージ（削除は墓標で引く）
+      mergeRemoteToLocal(docName, remoteData, remoteUpdatedAt, remoteDeleted);
 
       // コールバック通知
       for (const cb of syncCallbacks) {
