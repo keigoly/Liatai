@@ -1,5 +1,6 @@
 // src/components/RegisteredPanel.tsx
 import { useState, useEffect, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { RegisteredItem, FolderItem } from '../types';
 import { useSyncedStorage } from '../hooks/useSyncedStorage';
@@ -27,6 +28,55 @@ const FOLDER_COLORS = [
   '#FF00FF', // マゼンタ (300°)
   '#FF0080', // ローズ (330°)
 ];
+
+/**
+ * サブ色の重ね（パワプロのネームプレートと同じく **ちょうど半分** で分け、境目は **波線**）。
+ * プレート自体はメイン色で塗り、その上にサブ色の面を重ねて clip-path で
+ * 「波線から右側」だけを切り出す。波は高さ 1 周期の正弦。
+ * % は幅・高さに追従し、振幅だけ px で固定するのでプレートが横に伸びても形が崩れない。
+ */
+const WAVE_AMP_PX = 8;
+const WAVE_STEPS = 24;
+const SUB_WAVE_CLIP = (() => {
+  const pts: string[] = [];
+  for (let i = 0; i <= WAVE_STEPS; i++) {
+    const t = i / WAVE_STEPS;
+    const dx = Math.sin(t * Math.PI * 2) * WAVE_AMP_PX;
+    pts.push(`calc(50% ${dx >= 0 ? '+' : '-'} ${Math.abs(dx).toFixed(2)}px) ${(t * 100).toFixed(1)}%`);
+  }
+  pts.push('100% 100%', '100% 0');
+  return `polygon(${pts.join(',')})`;
+})();
+
+/** プレートの地色（メイン）。サブ色はこの上に SubWave で重ねる。 */
+const folderFill = (color: string): string => color || FOLDER_COLORS[0];
+
+/** 丸い印は小さすぎて波線が見えないので、直線で半分に割る。 */
+const folderDotFill = (color: string, subColor?: string): string => {
+  const main = color || FOLDER_COLORS[0];
+  return subColor ? `linear-gradient(90deg, ${main} 0 50%, ${subColor} 50% 100%)` : main;
+};
+
+/**
+ * フォルダ名の肉付け。黄や水色のような明るい地色だと白文字が沈むので、
+ * **地色に依存しない細い縁取り**を敷く。paint-order で縁を文字の下に描くため字が痩せない。
+ * 3px（見た目の縁は約 1.5px）＝読めるが強調しすぎない境目。
+ * サブ色の有無に関係なく常に当てる（単色でも黄・水色は同じ問題が起きるため）。
+ */
+const NAME_TEXT: CSSProperties = {
+  paintOrder: 'stroke fill',
+  WebkitTextStroke: '3px rgba(0,0,0,.38)',
+  textShadow: '0 1px 2px rgba(0,0,0,.3)',
+};
+
+/** サブ色の重ね。波線から右側だけを見せる。サブ色が無ければ何も描かない。 */
+const SubWave = ({ subColor }: { subColor?: string }) =>
+  subColor ? (
+    <span
+      className="absolute inset-0 rounded-[inherit] pointer-events-none z-0"
+      style={{ background: subColor, clipPath: SUB_WAVE_CLIP }}
+    />
+  ) : null;
 
 export const RegisteredPanel = ({ t, onSearch }: Props) => {
   const [activeTab, setActiveTab] = useState<SubTab>(() => {
@@ -386,12 +436,47 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
               placeholder={t('enterFolderName')}
             />
 
-            <div className="grid grid-cols-6 gap-3 mb-5 px-2">
+            {/* 出来上がりの見本（2 色にすると一覧でどう見えるかを保存前に確認できる） */}
+            <div
+              className="relative flex items-center justify-center h-10 rounded-2xl mb-4 shadow-md"
+              style={{ background: folderFill(modalData.color) }}
+            >
+              <SubWave subColor={modalData.subColor} />
+              <span className="relative z-[1] font-bold text-white text-sm truncate px-4" style={NAME_TEXT}>
+                {modalData.name.trim() || t('enterFolderName')}
+              </span>
+            </div>
+
+            <div className="text-[10.5px] font-bold text-gray-500 mb-1.5 px-1">{t('folderColor')}</div>
+            <div className="grid grid-cols-6 gap-3 mb-4 px-2">
               {FOLDER_COLORS.map(color => (
                 <button
                   key={color}
                   onClick={() => setModalData({ ...modalData, color: color })}
                   className={`w-8 h-8 rounded-full transition-all mx-auto ${modalData.color === color ? 'ring-2 ring-white scale-110' : 'opacity-60 hover:opacity-100'}`}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+
+            {/* サブ色（任意）。選ぶとプレートが左右 2 色になる。「なし」で単色へ戻す。 */}
+            <div className="text-[10.5px] font-bold text-gray-500 mb-1.5 px-1">{t('folderSubColor')}</div>
+            <div className="grid grid-cols-6 gap-3 mb-5 px-2">
+              <button
+                onClick={() => setModalData({ ...modalData, subColor: undefined })}
+                title={t('folderSubColorNone')}
+                aria-label={t('folderSubColorNone')}
+                className={`w-8 h-8 rounded-full transition-all mx-auto ring-1 ring-white/25 ${!modalData.subColor ? 'ring-2 ring-white scale-110' : 'opacity-60 hover:opacity-100'}`}
+                style={{
+                  background:
+                    'linear-gradient(135deg,transparent 44%,rgba(255,255,255,.55) 44%,rgba(255,255,255,.55) 56%,transparent 56%),rgba(255,255,255,.10)',
+                }}
+              />
+              {FOLDER_COLORS.filter(c => c !== modalData.color).map(color => (
+                <button
+                  key={color}
+                  onClick={() => setModalData({ ...modalData, subColor: color })}
+                  className={`w-8 h-8 rounded-full transition-all mx-auto ${modalData.subColor === color ? 'ring-2 ring-white scale-110' : 'opacity-60 hover:opacity-100'}`}
                   style={{ backgroundColor: color }}
                 />
               ))}
@@ -553,7 +638,7 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                       onClick={() => selectMoveTarget(f)}
                       className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-[var(--card-bg-color)] transition-colors border-b border-[var(--border-color)]"
                     >
-                      <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: f.color }} />
+                      <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: folderDotFill(f.color, f.subColor) }} />
                       <span className="truncate font-medium">{f.name}</span>
                       <span className="ml-auto text-[10px] text-gray-500">{f.items.length}件</span>
                     </button>
@@ -580,7 +665,7 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                     <span className="text-white font-bold">{moveConfirm.word.text}</span> を移動します
                   </p>
                   <div className="flex items-center gap-2 text-gray-400">
-                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: modalData.color }} />
+                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: folderDotFill(modalData.color, modalData.subColor) }} />
                     <span className="truncate">{modalData.name}</span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-[var(--theme-color)]"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                     <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: moveConfirm.targetFolder.color }} />
@@ -736,13 +821,14 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                     <div
                       draggable={false}
                       onClick={() => toggleFolder(folder.id)}
-                      style={{ backgroundColor: folder.color || FOLDER_COLORS[0] }}
+                      style={{ background: folderFill(folder.color) }}
                       className={`
                         flex justify-between items-center px-4 py-3 cursor-default select-none relative transition-all duration-300
                         ${selectedFolderId === folder.id ? 'rounded-t-2xl' : 'rounded-2xl'}
                         ${openMenuId === folder.id ? 'z-[100]' : 'z-10'}
                       `}
                     >
+                      <SubWave subColor={folder.subColor} />
                       {/* グリップアイコン: 固定時は opacity-0 & cursor-default で表示なし・禁止マークなし */}
                       <div
                         className={`absolute left-3 top-1/2 transform -translate-y-1/2 p-2 z-20 ${folder.isPinned ? 'opacity-0 cursor-default' : 'cursor-move text-white/50 hover:text-white'}`}
@@ -755,7 +841,10 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                       </div>
 
-                      <span className="font-bold text-white text-[1.1em] truncate drop-shadow-md w-full text-center pointer-events-none px-10">
+                      <span
+                        className="relative z-[1] font-bold text-white text-[1.1em] truncate w-full text-center pointer-events-none px-10"
+                        style={NAME_TEXT}
+                      >
                         {folder.name}
                       </span>
 
