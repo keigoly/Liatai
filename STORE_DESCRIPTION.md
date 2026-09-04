@@ -23,6 +23,14 @@
 ・検索結果の更新: 1秒 / 3秒 / 5秒 / 10秒
 （※秒単位の超高速更新で、実況ツイートの流れも逃しません）
 
+■ 🗂️ 登録ワード・フォルダ
+よく追いかけるワードを保存しておけば、ワンクリックで検索できます。関連するワードはフォルダにまとめて整理できます。
+・登録ワード: よく使うワードやタグを保存。クリックするだけで検索でき、押しピンで上部に固定できます。
+・フォルダ: テーマごとにワードをまとめて管理。開くと中のワードが並び、こちらもクリックで検索できます。
+・カラーラベル: フォルダは12色から選択。さらに「サブカラー」を選ぶと2色表示になり、数が増えても一目で見分けられます。
+・並べ替え: フォルダの順番は自由に入れ替え可能。フォルダ内のワードも上下ボタンで並べ替えられます。
+・Googleアカウント連携中は、登録ワードとフォルダを複数のChrome環境で共有できます。
+
 ■ 強力な「NGフィルター」機能
 見たくない情報は、視界に入る前にブロック。快適なタイムラインを作れます。
 ・NGワード: 特定の単語を含むポストを非表示にします。
@@ -47,14 +55,19 @@
 ・文字サイズ: 13px〜18pxまで5段階で調整可能
 
 ◇ 安心のプライバシー設計
-この拡張機能は、設定情報をブラウザ内にのみ保存し、外部サーバーへ個人データを送信することはありません。
+この拡張機能は、設定情報をブラウザ内にのみ保存し、外部サーバーへ個人データを送信することはありません。Googleアカウント連携時も、同期されるのは設定・登録ワード・NG設定・検索履歴のみです。
 
 ◇ 更新履歴
-v1.3.1: 微修正
+v1.3.1: フォルダにサブカラー追加（2色表示）、登録ワード・フォルダの同期の不具合修正、SNSシェアの重複表示を修正
+v1.3.0: Googleアカウント連携・クロスデバイス同期、初回起動ウェルカム画面、ハッシュタグ解析の精度向上（Yahoo JSON活用）、SNSシェアを全タブ共通フッターに移動
+v1.2.7: フォルダ内ワード全件表示（スクロール対応）、上下ボタン並び替え、ワード追加を末尾に変更、メニュー位置改善（v1.2.6ビルド不備修正）
+v1.2.6: フォルダ内ワード全件表示（スクロール対応）、上下ボタン並び替え、ワード追加を末尾に変更、メニュー位置改善
+v1.2.5: ポスト数グラフ・もっと見る・JSON解析によるデータ取得高速化をChrome版に完全反映
+v1.2.4: ハッシュタグ連結表示バグ修正、フォルダ内ワードのドラッグ&ドロップ並び替え、ワード3点メニュー（変更・移動・削除）追加、フォルダ間移動の確認画面追加
+v1.2.3: ツイートテキストの不要な空白を徹底修正（検索ハイライト由来のタブ文字・全角スペース・ゼロ幅制御文字を除去）、全角ハッシュタグ（＃）前後のスペース修正
 v1.2.2: 検索アニメーション改善、ベストポスト更新が自然に流入するよう改善、画像・動画サムネイルの表示修正
 v1.2.1: ベストポスト更新間隔の設定追加（1分/5分/10分/30分）、ベストポストがタイムラインと自然に流れるように改善、ベストポスト更新時にポスト数グラフも自動更新
 v1.2.0: ポスト数グラフ、もっと見る、SNSシェア、Chrome Web Storeローカライズ、各種改善
-v1.1.1: Chrome Web Storeポリシー準拠（未使用のstorage権限を削除）
 
 ---
 
@@ -80,6 +93,14 @@ Equipped with auto-refresh features so you don't miss the latest info. Refresh i
 ・Trend Refresh: 1 min / 3 min / 5 min / 10 min
 ・Search Results Refresh: 1 sec / 3 sec / 5 sec / 10 sec
 (*Ultra-fast second-level updates ensure you don't miss the flow of live commentary*)
+
+■ Saved Words & Folders
+Save the words you follow often and search them with a single click. Group related words into folders.
+- Saved words: Store frequently used words and tags. Click to search, or pin one to keep it at the top.
+- Folders: Organize words by theme. Open a folder to see its words, and click any of them to search.
+- Color labels: Choose from 12 colors, and add a "sub color" for a two-tone label so folders stay easy to tell apart as they grow.
+- Reordering: Rearrange folders freely, and reorder the words inside a folder with the up/down buttons.
+- While signed in with a Google account, your saved words and folders are shared across your Chrome environments.
 
 ■ Powerful "NG Filter" Function
 Block unwanted information before it enters your view. Create a comfortable timeline.
@@ -108,8 +129,13 @@ Switch from the side panel to a popup window. Your current search state is carri
 This extension saves setting information only within your browser and does not send personal data to external servers.
 
 ◇ Changelog
-v1.3.1: Minor fixes
-v1.2.2: Improved search animation, Best Post updates flow in naturally, fixed image/video thumbnail display
-v1.2.1: Added Best Post refresh interval setting (1/5/10/30 min), improved Best Post to flow naturally with timeline, auto-refresh post count graph on Best Post update
-v1.2.0: Post count graph, load more, SNS share, Chrome Web Store localization, various improvements
-v1.1.1: Chrome Web Store policy compliance (removed unused storage permission)
+v1.3.1: Added folder sub colors (two-tone labels), fixed sync for saved words and folders, fixed duplicated SNS share section
+v1.3.0: Google account integration & cross-device sync, first-launch welcome screen, improved hashtag parsing accuracy (Yahoo JSON), SNS share moved to common footer
+v1.2.7: Show all folder words (scrollable), up/down button reordering, new words added to bottom, menu position fix (fixes v1.2.6 build)
+v1.2.6: Show all folder words (scrollable), up/down button reordering, new words added to bottom, menu position fix
+v1.2.5: Post count graph, Load More, faster JSON-based data fetching fully integrated into Chrome version
+v1.2.4: Fixed hashtag concatenation, drag & drop word reordering, word context menu (edit/move/delete), move confirmation screen
+v1.2.3: Thoroughly fixed unwanted whitespace in tweet text (removed tab characters, full-width spaces, and zero-width control characters from search highlighting), fixed spaces around full-width hashtags
+v1.2.2: Search animation improvement, natural Best Post flow, media thumbnail display fix
+v1.2.1: Best Post refresh interval setting (1/5/10/30 min), natural Best Post flow with timeline, auto graph refresh on Best Post update
+v1.2.0: Post count graph, Load More, SNS Share, Chrome Web Store localization, various improvements

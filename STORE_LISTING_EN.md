@@ -17,6 +17,14 @@ Equipped with auto-refresh features so you don't miss the latest info.
 - Search Results Refresh: 1 sec / 3 sec / 5 sec / 10 sec
 (Ultra-fast second-level updates ensure you don't miss the flow of live commentary)
 
+* Saved Words & Folders
+Save the words you follow often and search them with a single click. Group related words into folders.
+- Saved words: Store frequently used words and tags. Click to search, or pin one to keep it at the top.
+- Folders: Organize words by theme. Open a folder to see its words, and click any of them to search.
+- Color labels: Choose from 12 colors, and add a "sub color" for a two-tone label so folders stay easy to tell apart as they grow.
+- Reordering: Rearrange folders freely, and reorder the words inside a folder with the up/down buttons.
+- While signed in with a Google account, your saved words and folders are shared across your Chrome environments.
+
 * Powerful "NG Filter" Function
 Block unwanted information before it enters your view. Create a comfortable timeline.
 - NG Words: Hide posts containing specific words.
@@ -44,8 +52,9 @@ Switch from side panel to a popup window. Your search state carries over to the 
 This extension stores settings only within your browser and never sends personal data to external servers. When using Google account sync, only settings, saved words, block settings, and search history are synced.
 
 - Changelog
-v1.3.1: Minor fixes
+v1.3.1: Added folder sub colors (two-tone labels), fixed sync for saved words and folders, fixed duplicated SNS share section
 v1.3.0: Google account integration & cross-device sync, first-launch welcome screen, improved hashtag parsing accuracy (Yahoo JSON), SNS share moved to common footer
+v1.2.7: Show all folder words (scrollable), up/down button reordering, new words added to bottom, menu position fix (fixes v1.2.6 build)
 v1.2.6: Show all folder words (scrollable), up/down button reordering, new words added to bottom, menu position fix
 v1.2.5: Post count graph, Load More, faster JSON-based data fetching fully integrated into Chrome version
 v1.2.4: Fixed hashtag concatenation, drag & drop word reordering, word context menu (edit/move/delete), move confirmation screen
