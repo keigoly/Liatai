@@ -28,13 +28,42 @@ const FOLDER_COLORS = [
   '#FF0080', // ローズ (330°)
 ];
 
-/** プレートの塗り。サブ色があれば左右 2 色（境目はぼかさない）、無ければ従来どおり単色。 */
-const SUB_SPLIT = 60;
-const folderFill = (color: string, subColor?: string): string => {
+/**
+ * サブ色の重ね（パワプロのネームプレートと同じく **ちょうど半分** で分け、境目は **波線**）。
+ * プレート自体はメイン色で塗り、その上にサブ色の面を重ねて clip-path で
+ * 「波線から右側」だけを切り出す。波は高さ 1 周期の正弦。
+ * % は幅・高さに追従し、振幅だけ px で固定するのでプレートが横に伸びても形が崩れない。
+ */
+const WAVE_AMP_PX = 8;
+const WAVE_STEPS = 24;
+const SUB_WAVE_CLIP = (() => {
+  const pts: string[] = [];
+  for (let i = 0; i <= WAVE_STEPS; i++) {
+    const t = i / WAVE_STEPS;
+    const dx = Math.sin(t * Math.PI * 2) * WAVE_AMP_PX;
+    pts.push(`calc(50% ${dx >= 0 ? '+' : '-'} ${Math.abs(dx).toFixed(2)}px) ${(t * 100).toFixed(1)}%`);
+  }
+  pts.push('100% 100%', '100% 0');
+  return `polygon(${pts.join(',')})`;
+})();
+
+/** プレートの地色（メイン）。サブ色はこの上に SubWave で重ねる。 */
+const folderFill = (color: string): string => color || FOLDER_COLORS[0];
+
+/** 丸い印は小さすぎて波線が見えないので、直線で半分に割る。 */
+const folderDotFill = (color: string, subColor?: string): string => {
   const main = color || FOLDER_COLORS[0];
-  if (!subColor) return main;
-  return `linear-gradient(90deg, ${main} 0 ${SUB_SPLIT}%, ${subColor} ${SUB_SPLIT}% 100%)`;
+  return subColor ? `linear-gradient(90deg, ${main} 0 50%, ${subColor} 50% 100%)` : main;
 };
+
+/** サブ色の重ね。波線から右側だけを見せる。サブ色が無ければ何も描かない。 */
+const SubWave = ({ subColor }: { subColor?: string }) =>
+  subColor ? (
+    <span
+      className="absolute inset-0 rounded-[inherit] pointer-events-none z-0"
+      style={{ background: subColor, clipPath: SUB_WAVE_CLIP }}
+    />
+  ) : null;
 
 export const RegisteredPanel = ({ t, onSearch }: Props) => {
   const [activeTab, setActiveTab] = useState<SubTab>(() => {
@@ -396,10 +425,11 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
 
             {/* 出来上がりの見本（2 色にすると一覧でどう見えるかを保存前に確認できる） */}
             <div
-              className="flex items-center justify-center h-10 rounded-2xl mb-4 shadow-md"
-              style={{ background: folderFill(modalData.color, modalData.subColor) }}
+              className="relative flex items-center justify-center h-10 rounded-2xl mb-4 shadow-md"
+              style={{ background: folderFill(modalData.color) }}
             >
-              <span className="font-bold text-white text-sm truncate px-4 drop-shadow-md">
+              <SubWave subColor={modalData.subColor} />
+              <span className="relative z-[1] font-bold text-white text-sm truncate px-4 drop-shadow-md">
                 {modalData.name.trim() || t('enterFolderName')}
               </span>
             </div>
@@ -595,7 +625,7 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                       onClick={() => selectMoveTarget(f)}
                       className="w-full flex items-center gap-3 px-4 py-3 text-sm text-white hover:bg-[var(--card-bg-color)] transition-colors border-b border-[var(--border-color)]"
                     >
-                      <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: f.color }} />
+                      <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ background: folderDotFill(f.color, f.subColor) }} />
                       <span className="truncate font-medium">{f.name}</span>
                       <span className="ml-auto text-[10px] text-gray-500">{f.items.length}件</span>
                     </button>
@@ -622,7 +652,7 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                     <span className="text-white font-bold">{moveConfirm.word.text}</span> を移動します
                   </p>
                   <div className="flex items-center gap-2 text-gray-400">
-                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: modalData.color }} />
+                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: folderDotFill(modalData.color, modalData.subColor) }} />
                     <span className="truncate">{modalData.name}</span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-[var(--theme-color)]"><path d="M5 12h14M12 5l7 7-7 7" /></svg>
                     <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: moveConfirm.targetFolder.color }} />
@@ -778,13 +808,14 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                     <div
                       draggable={false}
                       onClick={() => toggleFolder(folder.id)}
-                      style={{ background: folderFill(folder.color, folder.subColor) }}
+                      style={{ background: folderFill(folder.color) }}
                       className={`
                         flex justify-between items-center px-4 py-3 cursor-default select-none relative transition-all duration-300
                         ${selectedFolderId === folder.id ? 'rounded-t-2xl' : 'rounded-2xl'}
                         ${openMenuId === folder.id ? 'z-[100]' : 'z-10'}
                       `}
                     >
+                      <SubWave subColor={folder.subColor} />
                       {/* グリップアイコン: 固定時は opacity-0 & cursor-default で表示なし・禁止マークなし */}
                       <div
                         className={`absolute left-3 top-1/2 transform -translate-y-1/2 p-2 z-20 ${folder.isPinned ? 'opacity-0 cursor-default' : 'cursor-move text-white/50 hover:text-white'}`}
@@ -797,7 +828,7 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                       </div>
 
-                      <span className="font-bold text-white text-[1.1em] truncate drop-shadow-md w-full text-center pointer-events-none px-10">
+                      <span className="relative z-[1] font-bold text-white text-[1.1em] truncate drop-shadow-md w-full text-center pointer-events-none px-10">
                         {folder.name}
                       </span>
 
