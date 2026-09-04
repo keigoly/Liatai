@@ -4,6 +4,13 @@
 import type { NgSettings, RegisteredItem, FolderItem } from '../types/index';
 
 /**
+ * 墓標（tombstone）で消された id の集合。
+ * mergeArrayById は union なので「リモートに無い＝削除」を表現できない。削除は
+ * この集合で明示的に伝える（utils/tombstones.ts が真実源）。省略時は従来どおりの挙動。
+ */
+export type DeletedIds = ReadonlySet<string> | undefined;
+
+/**
  * 設定値のマージ（last-writer-wins）
  * リモートのupdatedAtがローカルより新しければリモートを採用
  */
@@ -25,7 +32,8 @@ export function mergeArrayById<T extends { id: string }>(
   localItems: T[],
   remoteItems: T[],
   localUpdatedAt: number,
-  remoteUpdatedAt: number
+  remoteUpdatedAt: number,
+  deleted?: DeletedIds
 ): T[] {
   const merged = new Map<string, T>();
 
@@ -46,6 +54,12 @@ export function mergeArrayById<T extends { id: string }>(
     // localUpdatedAt >= remoteUpdatedAt の場合はローカルを維持
   }
 
+  if (deleted && deleted.size > 0) {
+    for (const id of merged.keys()) {
+      if (deleted.has(id)) merged.delete(id);
+    }
+  }
+
   return Array.from(merged.values());
 }
 
@@ -57,11 +71,12 @@ export function mergeNgSettings(
   local: NgSettings,
   remote: NgSettings,
   localUpdatedAt: number,
-  remoteUpdatedAt: number
+  remoteUpdatedAt: number,
+  deleted?: DeletedIds
 ): NgSettings {
   return {
-    comments: mergeArrayById(local.comments, remote.comments, localUpdatedAt, remoteUpdatedAt),
-    userIds: mergeArrayById(local.userIds, remote.userIds, localUpdatedAt, remoteUpdatedAt),
+    comments: mergeArrayById(local.comments, remote.comments, localUpdatedAt, remoteUpdatedAt, deleted),
+    userIds: mergeArrayById(local.userIds, remote.userIds, localUpdatedAt, remoteUpdatedAt, deleted),
   };
 }
 
@@ -72,9 +87,10 @@ export function mergeRegisteredWords(
   local: RegisteredItem[],
   remote: RegisteredItem[],
   localUpdatedAt: number,
-  remoteUpdatedAt: number
+  remoteUpdatedAt: number,
+  deleted?: DeletedIds
 ): RegisteredItem[] {
-  return mergeArrayById(local, remote, localUpdatedAt, remoteUpdatedAt);
+  return mergeArrayById(local, remote, localUpdatedAt, remoteUpdatedAt, deleted);
 }
 
 /**
@@ -86,7 +102,8 @@ export function mergeFolders(
   local: FolderItem[],
   remote: FolderItem[],
   localUpdatedAt: number,
-  remoteUpdatedAt: number
+  remoteUpdatedAt: number,
+  deleted?: DeletedIds
 ): FolderItem[] {
   const localMap = new Map(local.map(f => [f.id, f]));
   const merged = new Map<string, FolderItem>();
@@ -109,9 +126,25 @@ export function mergeFolders(
         localFolder.items,
         remoteFolder.items,
         localUpdatedAt,
-        remoteUpdatedAt
+        remoteUpdatedAt,
+        deleted
       );
       merged.set(remoteFolder.id, { ...baseFolder, items: mergedItems });
+    }
+  }
+
+  if (deleted && deleted.size > 0) {
+    for (const [id, folder] of merged) {
+      // フォルダ自体の削除 → まるごと落とす
+      if (deleted.has(id)) {
+        merged.delete(id);
+        continue;
+      }
+      // ローカルにしか無かったフォルダは items がマージを通っていないのでここで引く
+      const items = (folder.items ?? []).filter(i => !deleted.has(i.id));
+      if (items.length !== (folder.items ?? []).length) {
+        merged.set(id, { ...folder, items });
+      }
     }
   }
 
