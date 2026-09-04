@@ -33,6 +33,12 @@ export interface FolderItem {
   id: string;
   name: string;
   color: string;
+  /**
+   * サブ色（任意）。設定するとフォルダのプレートを左右 2 色で塗る
+   * （パワプロのネームプレートのメイン/サブポジションと同じ考え方）。
+   * 未設定なら従来どおり単色。
+   */
+  subColor?: string;
   items: RegisteredItem[];
   isPinned?: boolean;
 }

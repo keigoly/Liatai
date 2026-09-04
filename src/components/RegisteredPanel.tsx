@@ -28,6 +28,14 @@ const FOLDER_COLORS = [
   '#FF0080', // ローズ (330°)
 ];
 
+/** プレートの塗り。サブ色があれば左右 2 色（境目はぼかさない）、無ければ従来どおり単色。 */
+const SUB_SPLIT = 60;
+const folderFill = (color: string, subColor?: string): string => {
+  const main = color || FOLDER_COLORS[0];
+  if (!subColor) return main;
+  return `linear-gradient(90deg, ${main} 0 ${SUB_SPLIT}%, ${subColor} ${SUB_SPLIT}% 100%)`;
+};
+
 export const RegisteredPanel = ({ t, onSearch }: Props) => {
   const [activeTab, setActiveTab] = useState<SubTab>(() => {
     try {
@@ -386,12 +394,46 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
               placeholder={t('enterFolderName')}
             />
 
-            <div className="grid grid-cols-6 gap-3 mb-5 px-2">
+            {/* 出来上がりの見本（2 色にすると一覧でどう見えるかを保存前に確認できる） */}
+            <div
+              className="flex items-center justify-center h-10 rounded-2xl mb-4 shadow-md"
+              style={{ background: folderFill(modalData.color, modalData.subColor) }}
+            >
+              <span className="font-bold text-white text-sm truncate px-4 drop-shadow-md">
+                {modalData.name.trim() || t('enterFolderName')}
+              </span>
+            </div>
+
+            <div className="text-[10.5px] font-bold text-gray-500 mb-1.5 px-1">{t('folderColor')}</div>
+            <div className="grid grid-cols-6 gap-3 mb-4 px-2">
               {FOLDER_COLORS.map(color => (
                 <button
                   key={color}
                   onClick={() => setModalData({ ...modalData, color: color })}
                   className={`w-8 h-8 rounded-full transition-all mx-auto ${modalData.color === color ? 'ring-2 ring-white scale-110' : 'opacity-60 hover:opacity-100'}`}
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+
+            {/* サブ色（任意）。選ぶとプレートが左右 2 色になる。「なし」で単色へ戻す。 */}
+            <div className="text-[10.5px] font-bold text-gray-500 mb-1.5 px-1">{t('folderSubColor')}</div>
+            <div className="grid grid-cols-6 gap-3 mb-5 px-2">
+              <button
+                onClick={() => setModalData({ ...modalData, subColor: undefined })}
+                title={t('folderSubColorNone')}
+                aria-label={t('folderSubColorNone')}
+                className={`w-8 h-8 rounded-full transition-all mx-auto ring-1 ring-white/25 ${!modalData.subColor ? 'ring-2 ring-white scale-110' : 'opacity-60 hover:opacity-100'}`}
+                style={{
+                  background:
+                    'linear-gradient(135deg,transparent 44%,rgba(255,255,255,.55) 44%,rgba(255,255,255,.55) 56%,transparent 56%),rgba(255,255,255,.10)',
+                }}
+              />
+              {FOLDER_COLORS.filter(c => c !== modalData.color).map(color => (
+                <button
+                  key={color}
+                  onClick={() => setModalData({ ...modalData, subColor: color })}
+                  className={`w-8 h-8 rounded-full transition-all mx-auto ${modalData.subColor === color ? 'ring-2 ring-white scale-110' : 'opacity-60 hover:opacity-100'}`}
                   style={{ backgroundColor: color }}
                 />
               ))}
@@ -736,7 +778,7 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                     <div
                       draggable={false}
                       onClick={() => toggleFolder(folder.id)}
-                      style={{ backgroundColor: folder.color || FOLDER_COLORS[0] }}
+                      style={{ background: folderFill(folder.color, folder.subColor) }}
                       className={`
                         flex justify-between items-center px-4 py-3 cursor-default select-none relative transition-all duration-300
                         ${selectedFolderId === folder.id ? 'rounded-t-2xl' : 'rounded-2xl'}
