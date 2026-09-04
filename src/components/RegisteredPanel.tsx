@@ -1,5 +1,6 @@
 // src/components/RegisteredPanel.tsx
 import { useState, useEffect, useRef } from 'react';
+import type { CSSProperties } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { RegisteredItem, FolderItem } from '../types';
 import { useSyncedStorage } from '../hooks/useSyncedStorage';
@@ -54,6 +55,18 @@ const folderFill = (color: string): string => color || FOLDER_COLORS[0];
 const folderDotFill = (color: string, subColor?: string): string => {
   const main = color || FOLDER_COLORS[0];
   return subColor ? `linear-gradient(90deg, ${main} 0 50%, ${subColor} 50% 100%)` : main;
+};
+
+/**
+ * フォルダ名の肉付け。黄や水色のような明るい地色だと白文字が沈むので、
+ * **地色に依存しない細い縁取り**を敷く。paint-order で縁を文字の下に描くため字が痩せない。
+ * 3px（見た目の縁は約 1.5px）＝読めるが強調しすぎない境目。
+ * サブ色の有無に関係なく常に当てる（単色でも黄・水色は同じ問題が起きるため）。
+ */
+const NAME_TEXT: CSSProperties = {
+  paintOrder: 'stroke fill',
+  WebkitTextStroke: '3px rgba(0,0,0,.38)',
+  textShadow: '0 1px 2px rgba(0,0,0,.3)',
 };
 
 /** サブ色の重ね。波線から右側だけを見せる。サブ色が無ければ何も描かない。 */
@@ -429,7 +442,7 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
               style={{ background: folderFill(modalData.color) }}
             >
               <SubWave subColor={modalData.subColor} />
-              <span className="relative z-[1] font-bold text-white text-sm truncate px-4 drop-shadow-md">
+              <span className="relative z-[1] font-bold text-white text-sm truncate px-4" style={NAME_TEXT}>
                 {modalData.name.trim() || t('enterFolderName')}
               </span>
             </div>
@@ -828,7 +841,10 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                       </div>
 
-                      <span className="relative z-[1] font-bold text-white text-[1.1em] truncate drop-shadow-md w-full text-center pointer-events-none px-10">
+                      <span
+                        className="relative z-[1] font-bold text-white text-[1.1em] truncate w-full text-center pointer-events-none px-10"
+                        style={NAME_TEXT}
+                      >
                         {folder.name}
                       </span>
 
