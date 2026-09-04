@@ -1,7 +1,9 @@
 // src/components/RegisteredPanel.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { RegisteredItem, FolderItem } from '../types';
+import { useSyncedStorage } from '../hooks/useSyncedStorage';
+import { STORAGE_KEYS } from '../constants/index';
 import type { TranslationKey } from '../i18n/translations';
 import { SnsShare } from './SnsShare';
 
@@ -36,88 +38,19 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
   });
 
   // --- 登録ワード ---
-  const [words, setWords] = useState<RegisteredItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('sidestream_registered_words');
-      const parsed = saved ? JSON.parse(saved) : [];
-      return parsed.map((w: RegisteredItem) => ({ ...w, isPinned: w.isPinned || false }));
-    } catch { return []; }
-  });
+  // useState + localStorage 直書きだと **クラウドへ push されない**（SYNC_KEY_MAP に載っていても、
+  // 実際に push/購読を行うのは useSyncedStorage）。そのため拡張で足した/消したワードが
+  // 他デバイスへ伝わらず、逆にクラウド発の変更も再マウントするまで画面に出なかった。
+  const [words, setWords] = useSyncedStorage<RegisteredItem[]>(STORAGE_KEYS.REGISTERED_WORDS, []);
   const [wordInput, setWordInput] = useState('');
 
   const [openWordMenuId, setOpenWordMenuId] = useState<string | null>(null);
 
   // --- フォルダ ---
-  // TODO: リリース時にダミーデータを削除
-  const DUMMY_FOLDERS: FolderItem[] = [
-    {
-      id: 'dummy-folder-1', name: 'テストフォルダ1', color: '#1d9bf0', isPinned: false,
-      items: [
-        { id: 'dummy-1-1', text: '#ワード1-A', isPinned: false },
-        { id: 'dummy-1-2', text: '#ワード1-B', isPinned: false },
-        { id: 'dummy-1-3', text: '#ワード1-C', isPinned: false },
-        { id: 'dummy-1-4', text: '#ワード1-D', isPinned: false },
-        { id: 'dummy-1-5', text: '#ワード1-E', isPinned: false },
-      ]
-    },
-    {
-      id: 'dummy-folder-2', name: 'テストフォルダ2', color: '#f91880', isPinned: false,
-      items: [
-        { id: 'dummy-2-1', text: '#ワード2-A', isPinned: false },
-        { id: 'dummy-2-2', text: '#ワード2-B', isPinned: false },
-        { id: 'dummy-2-3', text: '#ワード2-C', isPinned: false },
-        { id: 'dummy-2-4', text: '#ワード2-D', isPinned: false },
-        { id: 'dummy-2-5', text: '#ワード2-E', isPinned: false },
-      ]
-    },
-    {
-      id: 'dummy-folder-3', name: 'テストフォルダ3', color: '#00ba7c', isPinned: false,
-      items: [
-        { id: 'dummy-3-1', text: '#ワード3-A', isPinned: false },
-        { id: 'dummy-3-2', text: '#ワード3-B', isPinned: false },
-        { id: 'dummy-3-3', text: '#ワード3-C', isPinned: false },
-        { id: 'dummy-3-4', text: '#ワード3-D', isPinned: false },
-        { id: 'dummy-3-5', text: '#ワード3-E', isPinned: false },
-      ]
-    },
-    {
-      id: 'dummy-folder-4', name: 'テストフォルダ4', color: '#ffd400', isPinned: false,
-      items: [
-        { id: 'dummy-4-1', text: '#ワード4-A', isPinned: false },
-        { id: 'dummy-4-2', text: '#ワード4-B', isPinned: false },
-        { id: 'dummy-4-3', text: '#ワード4-C', isPinned: false },
-        { id: 'dummy-4-4', text: '#ワード4-D', isPinned: false },
-        { id: 'dummy-4-5', text: '#ワード4-E', isPinned: false },
-      ]
-    },
-    {
-      id: 'dummy-folder-5', name: 'テストフォルダ5', color: '#7856ff', isPinned: false,
-      items: [
-        { id: 'dummy-5-1', text: '#ワード5-A', isPinned: false },
-        { id: 'dummy-5-2', text: '#ワード5-B', isPinned: false },
-        { id: 'dummy-5-3', text: '#ワード5-C', isPinned: false },
-        { id: 'dummy-5-4', text: '#ワード5-D', isPinned: false },
-        { id: 'dummy-5-5', text: '#ワード5-E', isPinned: false },
-      ]
-    },
-    {
-      id: 'dummy-folder-6', name: 'テストフォルダ6（20件）', color: '#ff6b35', isPinned: false,
-      items: Array.from({ length: 20 }, (_, i) => ({
-        id: `dummy-6-${i + 1}`,
-        text: `#ダミーワード${i + 1}`,
-        isPinned: false,
-      }))
-    },
-  ];
-
-  const [folders, setFolders] = useState<FolderItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('sidestream_folders');
-      const parsed = saved ? JSON.parse(saved) : null;
-      if (!parsed || parsed.length === 0) return DUMMY_FOLDERS;
-      return parsed.map((f: FolderItem) => ({ ...f, items: f.items || [], isPinned: f.isPinned || false }));
-    } catch { return DUMMY_FOLDERS; }
-  });
+  // ダミーフォルダ（テストフォルダ1〜6）は削除した。同期に載せると「フォルダが空の端末」で
+  // 既定値として生成され、そのままクラウドへ push されて他デバイスへ流出するため
+  // （元から `// TODO: リリース時にダミーデータを削除` が付いていた）。
+  const [folders, setFolders] = useSyncedStorage<FolderItem[]>(STORAGE_KEYS.FOLDERS, []);
 
   const [selectedFolderId, _setSelectedFolderId] = useState<string | null>(() => {
     try {
@@ -159,13 +92,19 @@ export const RegisteredPanel = ({ t, onSearch }: Props) => {
     localStorage.setItem('sidestream_registered_panel_tab', activeTab);
   }, [activeTab]);
 
+  // 旧データの正規化（isPinned/items の欠落）。**変化が無ければ同じ配列を返す**ので、
+  // 余計な state 更新＝余計な push を起こさない。初回マウントで 1 回だけ走る。
+  const normalized = useRef(false);
   useEffect(() => {
-    localStorage.setItem('sidestream_registered_words', JSON.stringify(words));
-  }, [words]);
-
-  useEffect(() => {
-    localStorage.setItem('sidestream_folders', JSON.stringify(folders));
-  }, [folders]);
+    if (normalized.current) return;
+    normalized.current = true;
+    setWords(prev => prev.some(w => w.isPinned === undefined)
+      ? prev.map(w => ({ ...w, isPinned: w.isPinned || false }))
+      : prev);
+    setFolders(prev => prev.some(f => f.items === undefined || f.isPinned === undefined)
+      ? prev.map(f => ({ ...f, items: f.items || [], isPinned: f.isPinned || false }))
+      : prev);
+  }, [setWords, setFolders]);
 
   // --- ワード操作 ---
   const addWord = () => {
