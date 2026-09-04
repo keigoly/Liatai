@@ -1,9 +1,16 @@
 # Liatai (Real-time!)
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [日本語](README.md) | English
+
+---
+
+## 🆕 v1.3.1 Updates
+
+### Improvements
+* Minor fixes
 
 ---
 

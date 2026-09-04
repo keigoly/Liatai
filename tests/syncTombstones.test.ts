@@ -1,7 +1,7 @@
 // 削除同期（墓標）の回帰テスト。
 //
 // 背景: mergeArrayById は **id による和集合**なので「リモートに無い＝削除」を表現できない。
-// そのため他デバイス（超TV!）で消したフォルダ/ワードがこの拡張に残り続け、次にこちらが
+// そのため他デバイスで消したフォルダ/ワードがこの拡張に残り続け、次にこちらが
 // push した瞬間に相手側へ復活していた。ここで「union の利点は保ったまま削除だけ伝わる」
 // ことを固定する。
 //
@@ -43,7 +43,7 @@ test('墓標にある id は union の結果から引かれる', () => {
 });
 
 test('相手がフォルダを消した: ローカルにしか無くても消える', () => {
-  // 超TV! が f2 を削除 → remote には f2 が無く、deleted に f2 が載って届く。
+  // 他デバイスが f2 を削除 → remote には f2 が無く、deleted に f2 が載って届く。
   const local = [f('f1', ['a']), f('f2', ['c'])];
   const remote = [f('f1', ['a'])];
   const merged = mergeFolders(local, remote, 0, 1, new Set(['f2']));
@@ -132,11 +132,11 @@ test('isTombstoneDoc: settings と searchHistory は対象外', () => {
 
 // ── #201 のシナリオそのもの ─────────────────────────────────
 
-test('#201: 超TV! で消したフォルダが拡張で復活しない（そして復活 push もしない）', () => {
+test('他デバイスで消したフォルダが拡張で復活しない（そして復活 push もしない）', () => {
   const now = Date.now();
   // 拡張のローカル（まだ f2 を持っている）。
   let local = [f('f1', ['a']), f('f2', ['c'])];
-  // 超TV! が f2 を削除して push した doc。
+  // 他デバイスが f2 を削除して push した doc。
   const remote = [f('f1', ['a'])];
   const remoteDeleted = [{ id: 'f2', at: now }, { id: 'c', at: now }];
 

@@ -50,6 +50,7 @@
 この拡張機能は、設定情報をブラウザ内にのみ保存し、外部サーバーへ個人データを送信することはありません。
 
 ◇ 更新履歴
+v1.3.1: 微修正
 v1.2.2: 検索アニメーション改善、ベストポスト更新が自然に流入するよう改善、画像・動画サムネイルの表示修正
 v1.2.1: ベストポスト更新間隔の設定追加（1分/5分/10分/30分）、ベストポストがタイムラインと自然に流れるように改善、ベストポスト更新時にポスト数グラフも自動更新
 v1.2.0: ポスト数グラフ、もっと見る、SNSシェア、Chrome Web Storeローカライズ、各種改善
@@ -107,6 +108,7 @@ Switch from the side panel to a popup window. Your current search state is carri
 This extension saves setting information only within your browser and does not send personal data to external servers.
 
 ◇ Changelog
+v1.3.1: Minor fixes
 v1.2.2: Improved search animation, Best Post updates flow in naturally, fixed image/video thumbnail display
 v1.2.1: Added Best Post refresh interval setting (1/5/10/30 min), improved Best Post to flow naturally with timeline, auto-refresh post count graph on Best Post update
 v1.2.0: Post count graph, load more, SNS share, Chrome Web Store localization, various improvements

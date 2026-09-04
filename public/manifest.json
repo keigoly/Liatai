@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAj85/ZP3bzqrQAfZ0JD+G1C4vF/NOpNX+TzhUkJAkjkRcb/YJXTxaRDpWQnwr5MCkvOVXSXffn4i8MahvEJSB+q1hdt0REFbdFeZHoYXPhoKkowINB8NuYvolRzEoc+gwU9sUddJBFS6MuERA+2d6Ppd8wo+4Bpf4rkjPskb5I/FO6dzRGGS8Hqnv+kY04vwdHL3DniluzSJtqjoHn+2UaD3Kh+1pGnitFxKqH4b0zJaJAvolMoEJvbHcX+cvO9VqYw/SxCu1tiMk/DT1B6fpEZ/Z7MKsjm1rnV1IuY10MBUq8yJgKSXK+H6Tln5JFnF187wTStIei4CQe9AJ40zYeQIDAQAB",
   "description": "__MSG_appDescription__",
   "default_locale": "ja",
