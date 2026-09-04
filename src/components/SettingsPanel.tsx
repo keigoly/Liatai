@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { ThemeColor, BgMode, FontSize, NgSettings, NgWord, GraphPeriod } from '../types';
 import { STORAGE_KEYS, GRAPH_PERIOD_OPTIONS, BEST_POST_INTERVAL_OPTIONS } from '../constants/index';
-import { SnsShare } from './SnsShare';
 import type { Language, TranslationKey } from '../i18n/translations';
 import { useAuthContext } from '../contexts/AuthContext';
 
@@ -905,8 +904,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
           </div>
         </SettingsAccordion>
-
-        <SnsShare />
       </div>
 
       {renderNgEditorModal()}
