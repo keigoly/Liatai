@@ -9,8 +9,12 @@
 
 ## 🆕 v1.3.1 Updates
 
-### Improvements
-* Minor fixes
+### New Features
+* **🎨 Folder sub colors**: Folders can now carry a second color for a two-tone label, so they stay easy to tell apart as they grow.
+
+### Fixes
+* **☁️ Saved words & folders sync**: Fixed an issue where changes to saved words and folders were not reflected in cross-device sync. Deletions now propagate correctly.
+* **📱 Duplicated SNS share**: Fixed the SNS share section appearing twice at the bottom of the panel.
 
 ---
 
@@ -130,13 +134,22 @@ Block unwanted information before it enters your view. Create a comfortable time
 * **NG Users**: Hide posts from specific user IDs (@...).
 * **Regex Support**: Advanced filtering using regular expressions is supported for power users.
 
-### 4. 📊 Post Count Graph
+### 4. 🗂️ Saved Words & Folders
+Save the words you follow often and search them with a single click. Group related words into folders.
+
+* **Saved words**: Store frequently used words and tags. Click to search, or pin one to keep it at the top.
+* **Folders**: Organize words by theme. Open a folder to see its words, and click any of them to search.
+* **Color labels**: Choose from 12 colors, and add a "sub color" for a two-tone label so folders stay easy to tell apart as they grow.
+* **Reordering**: Rearrange folders freely, and reorder the words inside a folder with the up/down buttons.
+* While signed in with a Google account, your saved words and folders are shared across your Chrome environments.
+
+### 5. 📊 Post Count Graph
 View the post count trend for your search keyword. Switch between 6-hour, 24-hour, 7-day, and 30-day periods. Sentiment analysis (positive/negative) is also displayed.
 
-### 5. 🌐 Multi-language Support
+### 6. 🌐 Multi-language Support
 Switch between Japanese and English from the settings screen. Chrome Web Store also auto-displays based on your browser language.
 
-### 6. 🪟 Popup Window
+### 7. 🪟 Popup Window
 Switch from the side panel to a popup window. Your current search state is carried over to the independent window.
 
 ---
