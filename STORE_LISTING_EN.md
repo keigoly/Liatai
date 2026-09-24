@@ -52,6 +52,7 @@ Switch from side panel to a popup window. Your search state carries over to the 
 This extension stores settings only within your browser and never sends personal data to external servers. When using Google account sync, only settings, saved words, block settings, and search history are synced.
 
 - Changelog
+v1.3.2: Fixed slowdown during long sessions (reduced memory usage), fixed moving words between folders, removing words from folders, and reordering not syncing across devices
 v1.3.1: Added folder sub colors (two-tone labels), fixed sync for saved words and folders, fixed duplicated SNS share section
 v1.3.0: Google account integration & cross-device sync, first-launch welcome screen, improved hashtag parsing accuracy (Yahoo JSON), SNS share moved to common footer
 v1.2.7: Show all folder words (scrollable), up/down button reordering, new words added to bottom, menu position fix (fixes v1.2.6 build)
