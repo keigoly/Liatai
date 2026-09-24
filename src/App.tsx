@@ -275,11 +275,11 @@ function App() {
           isSyncMode={isSyncMode}
         />
 
-        {currentView === 'search' && (isScrolled || tweetsState.pendingTweets.length > 0) && (
+        {currentView === 'search' && (isScrolled || tweetsState.pendingCount > 0) && (
           <div className="absolute top-[120px] left-0 w-full flex justify-center z-30 pointer-events-none animate-in fade-in slide-in-from-top-4 duration-300">
             <button onClick={tweetsState.mergePendingTweets} className="pointer-events-auto bg-[var(--theme-color)] text-white font-bold text-sm px-4 py-2 rounded-full shadow-lg hover:brightness-110 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>
-              <span>最新のポストへ {tweetsState.pendingTweets.length > 0 ? `(${tweetsState.pendingTweets.length}件)` : ''}</span>
+              <span>最新のポストへ {tweetsState.pendingCount > 0 ? `(${tweetsState.pendingCount}件)` : ''}</span>
             </button>
           </div>
         )}

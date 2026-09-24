@@ -10,6 +10,8 @@ import type { Tweet, NgSettings } from '../types/index';
 export interface UseTweetsState {
     tweets: Tweet[];
     pendingTweets: Tweet[];
+    /** スクロール中に届いた新着の件数（pendingTweets は最新 MAX_TWEETS 件しか持たない）。 */
+    pendingCount: number;
     isTweetLoading: boolean;
     isLoadingMore: boolean;
     hasMoreTweets: boolean;
@@ -40,6 +42,7 @@ export function useTweets({
 }: UseTweetsProps): UseTweetsState {
     const [tweets, setTweets] = useState<Tweet[]>([]);
     const [pendingTweets, setPendingTweets] = useState<Tweet[]>([]);
+    const [pendingCount, setPendingCount] = useState(0);
     const [isTweetLoading, setIsTweetLoading] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [hasMoreTweets, setHasMoreTweets] = useState(true);
@@ -52,6 +55,32 @@ export function useTweets({
     useEffect(() => {
         tweetIdsRef.current = new Set(tweets.map(t => t.id));
     }, [tweets]);
+    const pendingIdsRef = useRef<Set<string>>(new Set());
+    useEffect(() => {
+        pendingIdsRef.current = new Set(pendingTweets.map(t => t.id));
+    }, [pendingTweets]);
+
+    const clearPending = useCallback(() => {
+        setPendingTweets([]);
+        setPendingCount(0);
+    }, []);
+
+    // スクロール中の新着を溜める。**持つのは最新 MAX_TWEETS 件だけ**（合流時にそれ以上は
+    // 捨てられる）。件数は別に数えて表示する。上限なしで溜めると、スクロールしたまま
+    // 置いておく間ずっと配列が伸び、毎回の重複判定とソートも全件に走ってメモリと CPU を
+    // 食い続けていた（1 秒更新で 6 分放置すると 1 万件超・ヒープ約 3 倍）。
+    const queuePending = useCallback((allNew: Tweet[]) => {
+        const uniqueNew = allNew.filter(t => !tweetIdsRef.current.has(t.id) && !pendingIdsRef.current.has(t.id));
+        if (uniqueNew.length === 0) return;
+        for (const t of uniqueNew) pendingIdsRef.current.add(t.id);
+        setPendingCount(c => c + uniqueNew.length);
+        setPendingTweets(prevPending => {
+            const pendingIds = new Set(prevPending.map(t => t.id));
+            const add = uniqueNew.filter(t => !pendingIds.has(t.id));
+            if (add.length === 0) return prevPending;
+            return sortNewestFirst([...add, ...prevPending]).slice(0, DEFAULTS.MAX_TWEETS);
+        });
+    }, []);
 
     const loadTweets = useCallback(async (isBackground = false, targetKeyword?: string) => {
         const query = targetKeyword || searchKeyword;
@@ -83,12 +112,7 @@ export function useTweets({
                 const allNew = [newBest, ...sortedTimeline];
 
                 if (isScrolled) {
-                    setPendingTweets(prevPending => {
-                        const pendingIds = new Set(prevPending.map(t => t.id));
-                        const uniqueNew = allNew.filter(t => !tweetIdsRef.current.has(t.id) && !pendingIds.has(t.id));
-                        if (uniqueNew.length === 0) return prevPending;
-                        return sortNewestFirst([...uniqueNew, ...prevPending]);
-                    });
+                    queuePending(allNew);
                 } else {
                     setTweets(prev => {
                         // 旧ベストポストの isBest フラグを解除 & 新ベストと同IDのツイートを除外
@@ -100,19 +124,14 @@ export function useTweets({
                         const combined = [newBest, ...newTimeline, ...cleaned];
                         return combined.slice(0, DEFAULTS.MAX_TWEETS);
                     });
-                    setPendingTweets([]);
+                    clearPending();
                 }
             } else if (isBackground) {
                 // 通常のバックグラウンド更新: 新着ツイートのみ追加
                 const allNew = sortedTimeline;
 
                 if (isScrolled) {
-                    setPendingTweets(prevPending => {
-                        const pendingIds = new Set(prevPending.map(t => t.id));
-                        const uniqueNew = allNew.filter(t => !tweetIdsRef.current.has(t.id) && !pendingIds.has(t.id));
-                        if (uniqueNew.length === 0) return prevPending;
-                        return sortNewestFirst([...uniqueNew, ...prevPending]);
-                    });
+                    queuePending(allNew);
                 } else {
                     setTweets(prev => {
                         const existingIds = new Set(prev.map(t => t.id));
@@ -121,21 +140,21 @@ export function useTweets({
                         const combined = [...uniqueNew, ...prev];
                         return combined.slice(0, DEFAULTS.MAX_TWEETS);
                     });
-                    setPendingTweets([]);
+                    clearPending();
                 }
             } else {
                 // 初回ロード: key変更でコンテナ再マウント → 全ツイート同時表示 + フェードインアニメーション
                 setFullRefreshKey(k => k + 1);
                 const initialList = effectiveBest ? [effectiveBest, ...sortedTimeline] : sortedTimeline;
                 setTweets(initialList.slice(0, DEFAULTS.MAX_TWEETS));
-                setPendingTweets([]);
+                clearPending();
             }
         } catch (err) {
             console.error(err);
         } finally {
             if (!isBackground) setIsTweetLoading(false);
         }
-    }, [searchKeyword, isScrolled, bestPostInterval]);
+    }, [searchKeyword, isScrolled, bestPostInterval, queuePending, clearPending]);
 
     // SYNC モード用: Snowflake ID で特定時刻のツイートを直接取得する
     // 放送時間帯にジャンプし、3ページ分（約60件）を連続取得して一括セットする
@@ -157,7 +176,7 @@ export function useTweets({
             console.log('[useTweets] loadTweetsFromTime result:', allTweets.length, 'tweets');
             setTweets(allTweets);
             setHasMoreTweets(allTweets.length > 0);
-            setPendingTweets([]);
+            clearPending();
             currentPage.current = 1;
             setFullRefreshKey(k => k + 1);
         } catch (err) {
@@ -165,7 +184,7 @@ export function useTweets({
         } finally {
             setIsTweetLoading(false);
         }
-    }, []);
+    }, [clearPending]);
 
     const mergePendingTweets = useCallback(() => {
         if (pendingTweets.length === 0 && !isScrolled) return;
@@ -175,12 +194,12 @@ export function useTweets({
             const combined = [...uniquePending, ...prev];
             return combined.slice(0, DEFAULTS.MAX_TWEETS);
         });
-        setPendingTweets([]);
+        clearPending();
         if (scrollContainerRef.current) {
             scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
         }
         setIsScrolled(false);
-    }, [pendingTweets, isScrolled, scrollContainerRef, setIsScrolled]);
+    }, [pendingTweets, isScrolled, scrollContainerRef, setIsScrolled, clearPending]);
 
     const filterTweets = useCallback((
         tweetsToFilter: Tweet[],
@@ -218,11 +237,11 @@ export function useTweets({
 
     const resetTweets = useCallback(() => {
         setTweets([]);
-        setPendingTweets([]);
+        clearPending();
         lastBestPostTime.current = 0;
         currentPage.current = 1;
         setHasMoreTweets(true);
-    }, []);
+    }, [clearPending]);
 
     // もっと見る機能（JSON APIを使用）
     const loadMoreTweets = useCallback(async () => {
@@ -266,6 +285,7 @@ export function useTweets({
     return {
         tweets,
         pendingTweets,
+        pendingCount,
         isTweetLoading,
         isLoadingMore,
         hasMoreTweets,
