@@ -1,0 +1,54 @@
+diff --git a/node_modules/@formkit/auto-animate/index.mjs b/node_modules/@formkit/auto-animate/index.mjs
+index 7ad811c..f84de38 100644
+--- a/node_modules/@formkit/auto-animate/index.mjs
++++ b/node_modules/@formkit/auto-animate/index.mjs
+@@ -146,6 +146,9 @@ function updatePos(el, debounce = true) {
+         const currentAnimation = animations.get(el);
+         try {
+             await (currentAnimation === null || currentAnimation === void 0 ? void 0 : currentAnimation.finished);
++            // 切り離された要素には監視を作り直さない（作ると要素ごと永久に残る）
++            if (!el.isConnected)
++                return forget(el);
+             coords.set(el, getCoords(el));
+             observePosition(el);
+         }
+@@ -173,9 +176,38 @@ function updateAllPos() {
+  */
+ function poll(el) {
+     setTimeout(() => {
+-        intervals.set(el, setInterval(() => lowPriority(updatePos.bind(null, el)), 2000));
++        // 後始末（destroy）の後に遅れて来た場合、切り離された要素にタイマーを付けない
++        if (!el.isConnected)
++            return;
++        // 入れ子の親（自分も auto-animate の親で、外側の親の子でもある）は poll が 2 回呼ばれる。
++        // 登録簿は 1 本しか覚えないので、前の 1 本を止めてから付け替える（止め損ねると永久に残る）。
++        const prev = intervals.get(el);
++        if (prev)
++            clearInterval(prev);
++        const id = setInterval(() => {
++            if (!el.isConnected) {
++                clearInterval(id);
++                return forget(el);
++            }
++            lowPriority(updatePos.bind(null, el));
++        }, 2000);
++        intervals.set(el, id);
+     }, Math.round(2000 * Math.random()));
+ }
++/**
++ * 切り離された要素の監視・タイマーを外す（リーク防止のローカル修正）。
++ * @param el - Element
++ */
++function forget(el) {
++    const i = intervals.get(el);
++    if (i)
++        clearInterval(i);
++    intervals.delete(el);
++    const io = intersections.get(el);
++    io === null || io === void 0 ? void 0 : io.disconnect();
++    intersections.delete(el);
++    resize === null || resize === void 0 ? void 0 : resize.unobserve(el);
++}
+ /**
+  * Perform some operation that is non critical at some point.
+  * @param callback
