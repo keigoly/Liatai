@@ -1,9 +1,17 @@
 # リアタイ！ (Liatai)
 
-[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](README_EN.md) | 日本語
+
+---
+
+## 🆕 v1.3.2 アップデート
+
+### 修正
+* **⚡ 長時間使うと重くなる問題**: 検索やタブ切り替えを繰り返すと、表示を終えた要素がメモリに残り続けて Chrome 全体の動作が重くなる問題を修正しました。スクロール中に溜める新着ポストもメモリを使いすぎないようにしました。
+* **☁️ フォルダの同期**: ワードを別のフォルダへ移動する・フォルダから外す・並べ替える操作が他の環境へ正しく伝わらず、元に戻ってしまう問題を修正しました。どの環境で操作しても数秒で揃います。
 
 ---
 

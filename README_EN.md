@@ -1,9 +1,17 @@
 # Liatai (Real-time!)
 
-[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [日本語](README.md) | English
+
+---
+
+## 🆕 v1.3.2 Updates
+
+### Fixes
+* **⚡ Slowdown during long sessions**: Fixed an issue where elements that were no longer displayed stayed in memory after repeated searches or tab switches, making Chrome sluggish. New posts collected while scrolling no longer use excessive memory.
+* **☁️ Folder sync**: Fixed moving words to another folder, removing words from a folder, and reordering not propagating to other environments (and reverting). Changes now settle within seconds on every device.
 
 ---
 
