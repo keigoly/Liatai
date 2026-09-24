@@ -10,8 +10,8 @@ import { db } from '../lib/firebase';
 import { SYNC_DEBOUNCE_MS, STORAGE_KEYS, DEFAULTS, SYNC_KEY_MAP } from '../constants/index';
 import { loadStorage, saveStorage } from '../utils/storage';
 import {
-  mergeSettings, mergeNgSettings, mergeRegisteredWords,
-  mergeFolders, mergeSearchHistory,
+  mergeSettings, mergeNgSettings, mergeRegisteredWords, mergeSearchHistory,
+  merge3RegisteredWords, merge3Folders, mergeFoldersWithoutBase, dropDeletedFolders,
 } from '../utils/syncMerge';
 import {
   isTombstoneDoc, mergeTombstones, tombstoneIdSet, type Tombstone,
@@ -55,6 +55,47 @@ export function addTombstones(docName: string, tombs: Tombstone[]): Tombstone[] 
   saveTombstones(all);
   return merged;
 }
+
+// ========== 同期の基準（base）==========
+// 登録ワード/フォルダは 3-way マージ（utils/syncMerge.ts の merge3*）で合わせる。そのための
+// 「最後にサーバと一致していた値」をアカウントごとに保存する。更新するのは
+// ①リモートを取り込んだとき（＝リモートの値）②push が成功したとき（＝送った値）だけ。
+// base が無い（この版で初めて同期する）ときだけ従来の union 系で合わせる。
+
+const BASE_DOCS = ['registeredWords', 'folders'] as const;
+type BaseDoc = (typeof BASE_DOCS)[number];
+const isBaseDoc = (docName: string): docName is BaseDoc =>
+  (BASE_DOCS as readonly string[]).includes(docName);
+
+// 基準はアカウント単位（別アカウントでサインインし直したときに前の基準を使わない）。
+let currentUid: string | null = null;
+const baseKey = (docName: string) => `sidestream_sync_base_v1:${currentUid ?? '-'}:${docName}`;
+
+function loadBase<T>(docName: string): T | null {
+  if (!currentUid) return null;
+  try {
+    const raw = localStorage.getItem(baseKey(docName));
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveBase(docName: string, value: unknown): void {
+  if (!currentUid || !isBaseDoc(docName)) return;
+  try {
+    localStorage.setItem(baseKey(docName), JSON.stringify(value ?? []));
+  } catch {
+    // 保存できなくても同期は続ける（次回は base 無し＝従来の合わせ方になるだけ）
+  }
+}
+
+// ドキュメント全体を push する doc → そのローカルストレージキー（push 直前に最新値を読み直すため）
+const WHOLE_DOC_STORAGE_KEY: Record<string, string> = Object.fromEntries(
+  Object.entries(SYNC_KEY_MAP)
+    .filter(([, v]) => !v.field)
+    .map(([storageKey, v]) => [v.doc, storageKey])
+);
 
 // settingsドキュメントのリモートフィールド名 → ローカルストレージキーのマッピング（モジュール定数）
 const SETTINGS_FIELD_TO_KEY: Record<string, string> = Object.fromEntries(
@@ -137,15 +178,19 @@ export function pushToRemote(uid: string, docName: string, data: unknown, field?
           });
         }
       } else {
-        // ドキュメント全体の書き込み。削除を伝えるため墓標を常に載せる
-        // （相手が未対応なら無視されるだけ。相手の push で落ちても次のこちらの push で戻る）。
+        // ドキュメント全体の書き込み。**送る値は発火時点の最新を読み直す**（呼ばれた時点の値を
+        // 送ると、待っている間に取り込んだ相手の変更を古い値で上書きしてしまう）。
+        // 削除を伝えるため墓標を常に載せる（相手が未対応なら無視されるだけ）。
+        const storageKey = WHOLE_DOC_STORAGE_KEY[docName];
+        const latest = storageKey ? loadStorage<unknown>(storageKey, data) : data;
         await setDoc(docRef, {
-          data,
+          data: latest,
           deleted: getTombstones(docName),
           updatedAt: now,
           sourceDeviceId: deviceId,
           serverUpdatedAt: serverTimestamp(),
         });
+        saveBase(docName, latest);
       }
       recentWrites[docName] = now;
     } catch (err) {
@@ -208,6 +253,8 @@ export async function uploadInitialData(uid: string): Promise<void> {
     setDoc(doc(db, 'users', uid, 'sync', 'folders'), { data: folders, deleted: getTombstones('folders'), ...base }),
     setDoc(doc(db, 'users', uid, 'sync', 'searchHistory'), { data: searchHistory, ...base }),
   ]);
+  saveBase('registeredWords', registeredWords);
+  saveBase('folders', folders);
 
   saveStorage(STORAGE_KEYS.AUTH_LAST_SYNC, now);
 }
@@ -224,14 +271,15 @@ function getLocalChangeTimestamp(docName: string): number {
 }
 
 /**
- * リモートからローカルへのマージ処理
+ * リモートからローカルへのマージ処理。
+ * 戻り値 true＝マージ結果がリモートと違う（＝こちらにしか無い変更がある）ので push が要る。
  */
 function mergeRemoteToLocal(
   docName: string,
   remoteData: unknown,
   remoteUpdatedAt: number,
   remoteDeleted: Tombstone[] = []
-): void {
+): boolean {
   const localUpdatedAt = getLocalChangeTimestamp(docName);
   // リモートの墓標を自分の墓標へ取り込み、合算した集合でマージ結果から削除分を引く。
   const deleted = tombstoneIdSet(
@@ -259,17 +307,27 @@ function mergeRemoteToLocal(
     }
     case 'registeredWords': {
       const local = loadStorage<RegisteredItem[]>(STORAGE_KEYS.REGISTERED_WORDS, []);
-      const remote = remoteData as RegisteredItem[];
-      const merged = mergeRegisteredWords(local, remote, localUpdatedAt, remoteUpdatedAt, deleted);
+      const remote = ((remoteData as RegisteredItem[]) ?? []).filter(w => !deleted.has(w.id));
+      const base = loadBase<RegisteredItem[]>(docName);
+      const merged = base
+        ? merge3RegisteredWords(base, local, remote, deleted)
+        : mergeRegisteredWords(local, remote, localUpdatedAt, remoteUpdatedAt, deleted);
       saveStorage(STORAGE_KEYS.REGISTERED_WORDS, merged);
-      break;
+      saveBase(docName, remote);
+      return JSON.stringify(merged) !== JSON.stringify(remote);
     }
     case 'folders': {
       const local = loadStorage<FolderItem[]>(STORAGE_KEYS.FOLDERS, []);
-      const remote = remoteData as FolderItem[];
-      const merged = mergeFolders(local, remote, localUpdatedAt, remoteUpdatedAt, deleted);
+      const remote = dropDeletedFolders((remoteData as FolderItem[]) ?? [], deleted);
+      const base = loadBase<FolderItem[]>(docName);
+      // base が無いとき（この版で初めて同期）: この端末にしか無いフォルダは残し、両方に在る
+      // フォルダの中身はリモートに合わせる（旧版の union が元フォルダに残した移動済みワードを掃除する）。
+      const merged = base
+        ? merge3Folders(base, local, remote, deleted)
+        : mergeFoldersWithoutBase(local, remote, deleted);
       saveStorage(STORAGE_KEYS.FOLDERS, merged);
-      break;
+      saveBase(docName, remote);
+      return JSON.stringify(merged) !== JSON.stringify(remote);
     }
     case 'searchHistory': {
       const local = loadStorage<string[]>(STORAGE_KEYS.SEARCH_HISTORY, []);
@@ -279,7 +337,7 @@ function mergeRemoteToLocal(
       break;
     }
   }
-
+  return false;
 }
 
 // スナップショットコールバックの登録用
@@ -303,6 +361,7 @@ export function onSyncChange(callback: SyncCallback): () => void {
  */
 export function startSyncListeners(uid: string): void {
   stopSyncListeners(); // 既存リスナーをクリア
+  currentUid = uid;
 
   const docNames = ['settings', 'ngSettings', 'registeredWords', 'folders', 'searchHistory'];
 
@@ -328,7 +387,13 @@ export function startSyncListeners(uid: string): void {
       const remoteDeleted = Array.isArray(docData.deleted) ? (docData.deleted as Tombstone[]) : [];
 
       // リモートデータをローカルにマージ（削除は墓標で引く）
-      mergeRemoteToLocal(docName, remoteData, remoteUpdatedAt, remoteDeleted);
+      const needsPush = mergeRemoteToLocal(docName, remoteData, remoteUpdatedAt, remoteDeleted);
+      // こちらにしか無い変更（未送信の編集・この端末だけのフォルダ）が残ったら、合わせた結果を返す。
+      // 相手の変更は取り込み済みなので上書きにはならない。
+      if (needsPush) {
+        const storageKey = WHOLE_DOC_STORAGE_KEY[docName];
+        if (storageKey) pushToRemote(uid, docName, loadStorage<unknown>(storageKey, []));
+      }
 
       // コールバック通知
       for (const cb of syncCallbacks) {
@@ -351,6 +416,7 @@ export function stopSyncListeners(): void {
     unsub();
   }
   activeUnsubscribes = [];
+  currentUid = null;
 
   // デバウンス中の書き込みをキャンセル（サインアウト後のstale writeを防止）
   for (const timerId of Object.values(debounceTimers)) {
