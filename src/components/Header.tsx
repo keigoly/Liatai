@@ -3,6 +3,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useAutoAnimate } from '@formkit/auto-animate/react';
 import type { TranslationKey } from '../i18n/translations';
 import type { ViewType, HomeTabType, TabType } from '../types/index';
+import { useSuggest } from '../hooks/useSuggest';
+import { buildAssistItems } from '../utils/searchAssist';
 
 interface HeaderProps {
   t: (key: TranslationKey) => string;
@@ -47,6 +49,18 @@ export const Header = ({
 }: HeaderProps) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  // 入力中の候補（Yahoo!リアルタイム検索と同じ: 前方一致の履歴 → 候補・合わせて最大 10 件）。
+  const assist = useSuggest(inputValue, isHistoryOpen && !isSyncMode && !!inputValue.trim());
+  const assistItems = inputValue.trim() ? buildAssistItems(inputValue, searchHistory, assist.suggestions) : [];
+  // キーボードで選んでいる候補（-1 = 選んでいない）。
+  const [highlight, setHighlight] = useState(-1);
+  const showAssist = isHistoryOpen && !isSyncMode && !!inputValue.trim() && (assistItems.length > 0 || assist.needsPermission);
+  const pickAssist = (word: string) => {
+    setInputValue(word);
+    onSuggestionClick(word);
+    setIsHistoryOpen(false);
+    setHighlight(-1);
+  };
 
   const [historyRef] = useAutoAnimate<HTMLUListElement>();
 
@@ -82,9 +96,31 @@ export const Header = ({
               className="w-full bg-[#202327] border border-gray-600 text-white rounded-full py-2 pl-4 pr-10 focus:outline-none focus:border-[var(--theme-color)] focus:bg-black transition-all"
               placeholder={t('searchPlaceholder')}
               value={inputValue}
-              onChange={(e) => !isSyncMode && setInputValue(e.target.value)}
+              onChange={(e) => {
+                if (isSyncMode) return;
+                setInputValue(e.target.value);
+                setIsHistoryOpen(true);
+                setHighlight(-1);
+              }}
               onKeyDown={(e) => {
+                // 日本語入力の変換確定（Enter）は検索にしない。
+                if (e.nativeEvent.isComposing || e.keyCode === 229) return;
+                if (showAssist && assistItems.length > 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+                  e.preventDefault();
+                  const n = assistItems.length;
+                  setHighlight((i) => (e.key === 'ArrowDown' ? (i + 1) % n : i <= 0 ? n - 1 : i - 1));
+                  return;
+                }
+                if (e.key === 'Escape') {
+                  setIsHistoryOpen(false);
+                  setHighlight(-1);
+                  return;
+                }
                 if (e.key === 'Enter' && !isSyncMode) {
+                  if (showAssist && highlight >= 0 && assistItems[highlight]) {
+                    pickAssist(assistItems[highlight].text);
+                    return;
+                  }
                   onSearch();
                   setIsHistoryOpen(false);
                 }
@@ -101,6 +137,48 @@ export const Header = ({
               </button>
             )}
           </div>
+
+          {/* 入力候補ポップアップ（入力中・最大 10 件） */}
+          {showAssist && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-black border border-[var(--border-color)] rounded-xl shadow-2xl overflow-hidden z-50">
+              {assist.needsPermission && (
+                <div className="flex items-center gap-3 px-4 py-2 bg-[var(--card-bg-color)] border-b border-[var(--border-color)] text-xs text-gray-400">
+                  <span className="flex-1">{t('suggestPermissionNote')}</span>
+                  <button onClick={() => void assist.requestPermission()} className="font-bold text-[var(--theme-color)] hover:underline">{t('suggestPermissionAllow')}</button>
+                  <button onClick={assist.dismissPermission} className="text-gray-500 hover:text-white" aria-label={t('suggestPermissionDismiss')} title={t('suggestPermissionDismiss')}>✕</button>
+                </div>
+              )}
+              <ul className="max-h-96 overflow-y-auto scrollbar-hide" role="listbox">
+                {assistItems.map((item, index) => (
+                  <li key={`${item.kind}:${item.text}`} className="border-b border-[var(--border-color)] last:border-0" role="option" aria-selected={index === highlight}>
+                    <div
+                      className={`flex items-center transition-colors cursor-pointer group ${index === highlight ? 'bg-[var(--card-bg-color)]' : 'hover:bg-[var(--card-bg-color)]'}`}
+                      onMouseMove={() => { if (highlight !== index) setHighlight(index); }}
+                    >
+                      <div className="flex-1 min-w-0 px-4 py-3 flex items-center gap-3" onClick={() => pickAssist(item.text)}>
+                        <span className="text-gray-500 flex-shrink-0">
+                          {item.kind === 'history' ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                          ) : (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.5" y2="16.5" /></svg>
+                          )}
+                        </span>
+                        <span className="text-white text-sm truncate">{item.text}</span>
+                      </div>
+                      {item.kind === 'history' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onRemoveHistory(item.text); }}
+                          className="p-3 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* 検索履歴ポップアップ */}
           {isHistoryOpen && !inputValue && searchHistory.length > 0 && (
