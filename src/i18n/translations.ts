@@ -142,6 +142,9 @@ export const translations = {
         // ========== 検索履歴 ==========
         searchHistory: '検索履歴',
         deleteAll: 'すべて削除',
+        suggestPermissionNote: '入力候補を表示するには許可が必要です',
+        suggestPermissionAllow: '許可する',
+        suggestPermissionDismiss: '閉じる',
 
         // ========== ツイートメニュー ==========
         blockUser: 'このユーザーをNG',
@@ -310,6 +313,9 @@ export const translations = {
         // ========== Search History ==========
         searchHistory: 'Search History',
         deleteAll: 'Delete all',
+        suggestPermissionNote: 'Allow access to show search suggestions',
+        suggestPermissionAllow: 'Allow',
+        suggestPermissionDismiss: 'Close',
 
         // ========== Tweet Menu ==========
         blockUser: 'Block this user',
