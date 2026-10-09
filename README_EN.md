@@ -1,9 +1,16 @@
 # Liatai (Real-time!)
 
-[![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.3.3-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [日本語](README.md) | English
+
+---
+
+## 🆕 v1.3.3 Updates
+
+### New Features
+* **🔎 Search suggestions**: Typing in the search box now shows the same suggestions as Yahoo! Real-time Search (e.g. "あ" → "アジア大会"), together with matching search history (up to 10 items). Pick one with the ↑/↓ keys and press Enter to search. On first use, the extension asks for permission to fetch suggestions (everything else works as before without it).
 
 ---
 

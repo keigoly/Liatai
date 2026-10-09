@@ -1,9 +1,16 @@
 # リアタイ！ (Liatai)
 
-[![Version](https://img.shields.io/badge/version-1.3.2-blue.svg)](https://github.com/keigoly/Liatai/releases)
+[![Version](https://img.shields.io/badge/version-1.3.3-blue.svg)](https://github.com/keigoly/Liatai/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 [English](README_EN.md) | 日本語
+
+---
+
+## 🆕 v1.3.3 アップデート
+
+### 新機能
+* **🔎 検索の入力候補**: 検索欄に文字を入力すると、Yahoo!リアルタイム検索と同じ入力候補が表示されるようになりました（例:「あ」→「アジア大会」）。入力に合う検索履歴と合わせて最大 10 件で、↑↓キーで選んで Enter で検索できます。初めて使うときに、入力候補の取得の許可を求めます（許可しなくても、これまでどおり使えます）。
 
 ---
 
