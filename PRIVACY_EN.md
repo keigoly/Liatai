@@ -16,7 +16,8 @@ These data are used solely for the purpose of maintaining the functionality of t
 
 ## 3. Access to External Services
 This Extension accesses Yahoo! Real-time Search (`search.yahoo.co.jp`) to retrieve data and display it within the side panel.
-This communication is performed directly from the user's browser, and the developer does not intermediate.
+In addition, only if the user grants permission, the text being typed in the search box is sent to Yahoo!'s suggestion service (`assist-search.yahooapis.jp`) to display search suggestions. Without that permission, this communication does not take place.
+These communications are performed directly from the user's browser, and the developer does not intermediate.
 
 ## 4. Disclaimer
 This Extension is an unofficial tool developed by an individual. It has no relationship with Yahoo! JAPAN or LINE Yahoo Corporation.
@@ -29,4 +30,4 @@ For inquiries regarding this Privacy Policy or to report bugs, please contact us
 * [Bug Report Form](https://docs.google.com/forms/d/e/1FAIpQLSeUlF5s7vgcG0RrISNrAwLKhMQTvJpndH8e31Z_WHF081McEA/viewform)
 
 ---
-Last Updated: 2026-01-14
+Last Updated: 2026-10-09

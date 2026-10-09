@@ -58,6 +58,7 @@
 この拡張機能は、設定情報をブラウザ内にのみ保存し、外部サーバーへ個人データを送信することはありません。Googleアカウント連携時も、同期されるのは設定・登録ワード・NG設定・検索履歴のみです。
 
 ◇ 更新履歴
+v1.3.3: 検索欄に入力候補（サジェスト）を表示（Yahoo!リアルタイム検索と同じ候補・初回のみ許可が必要）
 v1.3.2: 長時間使うと動作が重くなる問題を修正（メモリ使用量を改善）、フォルダ間のワード移動・フォルダから外す操作・並べ替えがデバイス間で同期されない問題を修正
 v1.3.1: フォルダにサブカラー追加（2色表示）、登録ワード・フォルダの同期の不具合修正、SNSシェアの重複表示を修正
 v1.3.0: Googleアカウント連携・クロスデバイス同期、初回起動ウェルカム画面、ハッシュタグ解析の精度向上（Yahoo JSON活用）、SNSシェアを全タブ共通フッターに移動
@@ -130,6 +131,7 @@ Switch from the side panel to a popup window. Your current search state is carri
 This extension saves setting information only within your browser and does not send personal data to external servers.
 
 ◇ Changelog
+v1.3.3: Search suggestions in the search box (same as Yahoo! Real-time Search; permission requested on first use)
 v1.3.2: Fixed slowdown during long sessions (reduced memory usage), fixed moving words between folders, removing words from folders, and reordering not syncing across devices
 v1.3.1: Added folder sub colors (two-tone labels), fixed sync for saved words and folders, fixed duplicated SNS share section
 v1.3.0: Google account integration & cross-device sync, first-launch welcome screen, improved hashtag parsing accuracy (Yahoo JSON), SNS share moved to common footer
